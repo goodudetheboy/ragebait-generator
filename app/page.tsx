@@ -20,16 +20,66 @@ export default function Home() {
     scenes: Array<{ caption: string; duration: number; keywords: string }>;
   } | null>(null);
   
+  // Ragebait Engine (FFmpeg) state
+  const [engineLoaded, setEngineLoaded] = useState(false);
+  const [engineLoading, setEngineLoading] = useState(false);
+  const [engineError, setEngineError] = useState('');
+  
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
-  // Check localStorage on mount
+  // Check localStorage on mount and auto-load engine
   useEffect(() => {
     const storedPassword = localStorage.getItem('ragebait_password');
     if (storedPassword) {
       // Verify stored password is still valid
       verifyPassword(storedPassword, true);
     }
+    
+    // Auto-load Ragebait Engine on mount (only once)
+    if (!engineLoaded && !engineLoading && !ffmpegRef.current) {
+      loadRagebaitEngine();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load Ragebait Engine (FFmpeg)
+  const loadRagebaitEngine = async () => {
+    setEngineLoading(true);
+    setEngineError('');
+    
+    try {
+      console.log('🔥 Loading Ragebait Engine...');
+      
+      // Check if SharedArrayBuffer is available
+      if (typeof SharedArrayBuffer === 'undefined') {
+        throw new Error('BROWSER NOT SUPPORTED - NEEDS SHAREDARRAYBUFFER');
+      }
+      
+      const ffmpeg = new FFmpeg();
+      
+      // Log FFmpeg messages
+      ffmpeg.on('log', ({ message }) => {
+        console.log('Ragebait Engine:', message);
+      });
+      
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+      
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      });
+      
+      ffmpegRef.current = ffmpeg;
+      setEngineLoaded(true);
+      console.log('✅ Ragebait Engine loaded successfully!');
+    } catch (err) {
+      console.error('❌ Ragebait Engine load error:', err);
+      const errorMsg = err instanceof Error ? err.message : 'FAILED TO LOAD ENGINE';
+      setEngineError(errorMsg.toUpperCase());
+    } finally {
+      setEngineLoading(false);
+    }
+  };
 
   const verifyPassword = async (password: string, silent = false) => {
     if (!silent) setAuthLoading(true);
@@ -101,40 +151,11 @@ export default function Home() {
 
       setVideoData({ script: data.script, scenes: data.scenes });
 
-      // Step 2: Load FFmpeg in browser
-      setProgress('LOADING VIDEO PROCESSOR...');
-      
-      // Check if SharedArrayBuffer is available
-      if (typeof SharedArrayBuffer === 'undefined') {
-        throw new Error('SHAREDARRAYBUFFER NOT AVAILABLE - CHECK BROWSER CONSOLE');
-      }
-      
-      if (!ffmpegRef.current) {
-        const ffmpeg = new FFmpeg();
-        
-        // Log FFmpeg messages for debugging
-        ffmpeg.on('log', ({ message }) => {
-          console.log('FFmpeg:', message);
-        });
-        
-        console.log('Loading FFmpeg core...');
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
-        
-        try {
-          await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-          });
-          console.log('✓ FFmpeg loaded successfully');
-        } catch (loadError) {
-          console.error('FFmpeg load error:', loadError);
-          throw new Error('FAILED TO LOAD FFMPEG - CHECK BROWSER CONSOLE');
-        }
-        
-        ffmpegRef.current = ffmpeg;
-      }
-
+      // Step 2: Get FFmpeg instance (already loaded)
       const ffmpeg = ffmpegRef.current;
+      if (!ffmpeg) {
+        throw new Error('RAGEBAIT ENGINE NOT LOADED');
+      }
 
       // Step 3: Process images with text overlays
       setProgress('PROCESSING IMAGES...');
@@ -371,42 +392,86 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Main Form */}
-          <div className="bg-white border-8 border-black p-8 mb-8">
-            <form onSubmit={handleGenerate} className="space-y-6">
-              <div>
-                <label htmlFor="prompt" className="block text-black font-black mb-3 text-2xl uppercase font-bebas tracking-wider">
-                  YOUR PROMPT:
-                </label>
-                <textarea
-                  id="prompt"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-3 bg-white border-4 border-black text-black text-lg font-bold placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-black resize-none font-bebas tracking-wider"
-                  placeholder="WHY YOUR PHONE BATTERY DIES AT 20%..."
+          {/* Ragebait Engine Status - Only show if loading or error */}
+          {(engineLoading || engineError) && (
+            <div className="bg-white border-8 border-black p-8 mb-8">
+              <h2 className="text-black font-black mb-4 text-2xl uppercase font-bebas tracking-wider text-center">
+                🔥 RAGEBAIT ENGINE
+              </h2>
+              
+              {engineLoading && (
+                <div className="text-center">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent mb-4"></div>
+                  <p className="text-black font-bold text-lg font-bebas tracking-wider">
+                    LOADING ENGINE...
+                  </p>
+                </div>
+              )}
+              
+              {engineError && (
+                <div className="space-y-4">
+                  <div className="bg-black text-white p-4 text-center">
+                    <p className="font-black text-lg font-bebas tracking-wider">
+                      ❌ {engineError}
+                    </p>
+                  </div>
+                  <button
+                    onClick={loadRagebaitEngine}
+                    className="w-full py-4 px-6 bg-black text-white text-xl font-black uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                  >
+                    🔄 RETRY
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Main Form - Show when engine is loaded */}
+          {engineLoaded && (
+            <>
+            {/* Engine Status Badge */}
+            <div className="bg-black text-white p-3 mb-6 text-center border-4 border-black">
+              <p className="font-black text-sm font-bebas tracking-wider">
+                ✅ RAGEBAIT ENGINE LOADED
+              </p>
+            </div>
+            
+            {/* Form */}
+            <div className="bg-white border-8 border-black p-8 mb-8">
+              <form onSubmit={handleGenerate} className="space-y-6">
+                <div>
+                  <label htmlFor="prompt" className="block text-black font-black mb-3 text-2xl uppercase font-bebas tracking-wider">
+                    YOUR PROMPT:
+                  </label>
+                  <textarea
+                    id="prompt"
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                    className="w-full px-4 py-3 bg-white border-4 border-black text-black text-lg font-bold placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-black resize-none font-bebas tracking-wider"
+                    placeholder="WHY YOUR PHONE BATTERY DIES AT 20%..."
+                    disabled={loading}
+                  />
+                </div>
+
+                <button
+                  type="submit"
                   disabled={loading}
-                />
-              </div>
+                  className="w-full py-5 px-6 bg-black text-white text-2xl font-black uppercase border-4 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50 font-bebas tracking-wider"
+                >
+                  {loading ? (progress || '⏳ GENERATING...') : '🔥 GENERATE VIDEO'}
+                </button>
+              </form>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-5 px-6 bg-black text-white text-2xl font-black uppercase border-4 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50 font-bebas tracking-wider"
-              >
-                {loading ? (progress || '⏳ GENERATING...') : '🔥 GENERATE VIDEO'}
-              </button>
-            </form>
+              {error && (
+                <div className="mt-6 p-4 bg-black text-white border-4 border-black">
+                  <p className="font-black text-lg uppercase text-center font-bebas tracking-wider">
+                    ❌ {error}
+                  </p>
+                </div>
+              )}
 
-            {error && (
-              <div className="mt-6 p-4 bg-black text-white border-4 border-black">
-                <p className="font-black text-lg uppercase text-center font-bebas tracking-wider">
-                  ❌ {error}
-                </p>
-              </div>
-            )}
-
-            {videoUrl && (
+              {videoUrl && (
               <div className="mt-8 space-y-6">
                 <div className="bg-black text-white p-4 border-4 border-black">
                   <p className="font-black text-xl uppercase text-center font-bebas tracking-wider">
@@ -458,7 +523,9 @@ export default function Home() {
                 </a>
               </div>
             )}
-          </div>
+            </div>
+            </>
+          )}
 
           {/* Footer */}
           <div className="text-center border-4 border-black p-4 bg-white">
