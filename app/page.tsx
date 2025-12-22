@@ -36,7 +36,34 @@ export default function Home() {
   
   const ffmpegRef = useRef<FFmpeg | null>(null);
 
+  // Random title options
+  const titleOptions = [
+    'RAGEBAIT ANYTHING',
+    'RAGEBAIT YOUR DOG',
+    'RAGEBAIT YOUR NEIGHBOR',
+    'RAGEBAIT *****',
+    'RAGEBAIT YOUR MIL',
+    'RAGEBAIT X',
+    'RAGEBAIT YOURSELF',
+    'RAGEBAIT A KINDERGARTENER',
+    'RAGEBAIT YOUR SO',
+    'RAGEBAIT TIKTOK',
+    'RAGEBAIT FACEBOOK',
+    'RAGEBAIT A GERIATRIC',
+    'RAGEBAIT INSTAGRAM'
+  ];
+
+  const [randomTitle, setRandomTitle] = useState(titleOptions[0]);
+
   // Check localStorage on mount and auto-load engine
+  useEffect(() => {
+    // Pick random title
+    const randomIndex = Math.floor(Math.random() * titleOptions.length);
+    setRandomTitle(titleOptions[randomIndex]);
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     // Check if SharedArrayBuffer is available
     if (typeof SharedArrayBuffer === 'undefined') {
@@ -470,7 +497,7 @@ export default function Home() {
         <div className="max-w-md w-full">
           <div className="text-center mb-8">
             <h1 className="text-6xl font-black text-black mb-6 uppercase tracking-wider font-bebas">
-              RAGEBAIT<br/>GENERATOR
+              RAGEBAIT<br/>ANYTHING
             </h1>
             <div className="w-24 h-1 bg-black mx-auto"></div>
           </div>
@@ -542,7 +569,7 @@ export default function Home() {
         <div className="max-w-md w-full">
           <div className="text-center mb-12">
             <h1 className="text-7xl font-black text-black mb-6 uppercase tracking-wider font-bebas">
-              RAGEBAIT<br/>GENERATOR
+              RAGEBAIT<br/>ANYTHING
             </h1>
             <div className="w-24 h-1 bg-black mx-auto"></div>
           </div>
@@ -588,7 +615,7 @@ export default function Home() {
           {/* Header */}
           <div className="text-center mb-8 pb-6 border-b-4 border-black">
             <h1 className="text-6xl font-black text-black mb-4 uppercase tracking-wider font-bebas">
-              RAGEBAIT GENERATOR
+              {randomTitle}
             </h1>
             <button
               onClick={handleLogout}
