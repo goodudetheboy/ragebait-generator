@@ -507,7 +507,13 @@ export default function Home() {
           text: shareText,
           files: [file]
         });
-      } catch {
+      } catch (error) {
+        // Check if user just canceled (AbortError)
+        if (error instanceof Error && error.name === 'AbortError') {
+          // User canceled, don't show error
+          return;
+        }
+        
         // Fallback to sharing just the URL
         try {
           await navigator.share({
@@ -515,8 +521,13 @@ export default function Home() {
             text: shareText,
             url: shareUrl
           });
-        } catch {
-          alert('❌ SHARING NOT SUPPORTED ON THIS DEVICE');
+        } catch (fallbackError) {
+          // Check if user canceled again
+          if (fallbackError instanceof Error && fallbackError.name === 'AbortError') {
+            return;
+          }
+          // Actual error
+          alert('❌ SHARING FAILED');
         }
       }
     } else {
@@ -905,7 +916,7 @@ export default function Home() {
                     📤 SHARE TO...
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
