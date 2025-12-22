@@ -55,7 +55,7 @@ fetch('/api/generate', {
 // Grok Vision analyzes images
 generateScript(prompt, images) => {
   if (images) {
-    // Use grok-2-vision-1212 model
+    // Use grok 4.1
     // Send images as base64
     // AI describes what it sees
     // Generates ragebait about it

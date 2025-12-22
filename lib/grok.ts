@@ -95,7 +95,7 @@ Rules:
     const response = await axios.post(
       `${GROK_API_BASE}/chat/completions`,
       {
-        model: hasImages ? 'grok-2-vision-1212' : 'grok-beta',
+        model: 'grok-4-1-fast-non-reasoning',
         messages,
         temperature: 0.9,
       },
