@@ -9,7 +9,10 @@ export default function Home() {
   const [passwordInput, setPasswordInput] = useState('');
   const [authError, setAuthError] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
-
+  
+  // Check if SharedArrayBuffer is available
+  const [hasSharedArrayBuffer, setHasSharedArrayBuffer] = useState(true);
+ 
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
@@ -29,6 +32,12 @@ export default function Home() {
 
   // Check localStorage on mount and auto-load engine
   useEffect(() => {
+    // Check if SharedArrayBuffer is available
+    if (typeof SharedArrayBuffer === 'undefined') {
+      setHasSharedArrayBuffer(false);
+      return;
+    }
+    
     const storedPassword = localStorage.getItem('ragebait_password');
     if (storedPassword) {
       // Verify stored password is still valid
@@ -328,6 +337,78 @@ export default function Home() {
     setVideoData(null);
     setError('');
   };
+
+  // BROWSER NOT SUPPORTED SCREEN
+  if (!hasSharedArrayBuffer) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="text-center mb-8">
+            <h1 className="text-6xl font-black text-black mb-6 uppercase tracking-wider font-bebas">
+              RAGEBAIT<br/>GENERATOR
+            </h1>
+            <div className="w-24 h-1 bg-black mx-auto"></div>
+          </div>
+
+          <div className="bg-white border-8 border-black p-8 space-y-6">
+            <div className="text-center">
+              <div className="text-6xl mb-4">⚠️</div>
+              <h2 className="text-2xl font-black text-black mb-4 uppercase font-bebas tracking-wider">
+                BROWSER NOT SUPPORTED
+              </h2>
+              <p className="text-black font-bold text-lg mb-4 font-bebas tracking-wide">
+                THIS APP NEEDS A REAL BROWSER
+              </p>
+              <p className="text-black text-sm mb-6 font-bebas">
+                MESSENGER INSTAGRAM FACEBOOK TIKTOK BROWSERS DON&apos;T WORK
+              </p>
+            </div>
+
+            <div className="bg-black text-white p-4">
+              <p className="font-black text-center text-lg font-bebas tracking-wider">
+                📱 TAP ⋯ OR ⋮ MENU
+              </p>
+              <p className="font-black text-center text-lg font-bebas tracking-wider mb-2">
+                THEN &quot;OPEN IN BROWSER&quot;
+              </p>
+              <p className="text-center text-sm font-bebas tracking-wider">
+                OR &quot;OPEN IN CHROME&quot; / &quot;OPEN IN SAFARI&quot;
+              </p>
+            </div>
+
+            <div className="space-y-2 text-center">
+              <p className="text-black font-bold font-bebas tracking-wider">SUPPORTED BROWSERS:</p>
+              <div className="flex justify-center gap-4 text-3xl">
+                <span title="Chrome">🔵</span>
+                <span title="Safari">🧭</span>
+                <span title="Firefox">🦊</span>
+                <span title="Edge">🌊</span>
+              </div>
+              <p className="text-black text-sm font-bebas">CHROME SAFARI FIREFOX EDGE</p>
+            </div>
+
+            <button
+              onClick={() => {
+                const url = window.location.href;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(url).then(() => {
+                    alert('✅ LINK COPIED! PASTE IN A REAL BROWSER');
+                  }).catch(() => {
+                    window.prompt('COPY THIS LINK AND OPEN IN A REAL BROWSER:', url);
+                  });
+                } else {
+                  window.prompt('COPY THIS LINK AND OPEN IN A REAL BROWSER:', url);
+                }
+              }}
+              className="w-full py-4 px-6 bg-black text-white text-xl font-black uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+            >
+              📋 COPY LINK
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // PASSWORD SCREEN
   if (!isAuthenticated) {
