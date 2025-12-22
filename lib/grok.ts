@@ -84,20 +84,21 @@ Rules:
 }
 
 /**
- * Generate speech audio using Grok Voice API
+ * Generate speech audio using OpenAI TTS API
+ * (Grok Voice API not yet publicly available)
  */
-export async function generateSpeech(text: string, voice: string = 'rex'): Promise<Buffer> {
-  const apiKey = process.env.GROK_API_KEY;
+export async function generateSpeech(text: string, voice: string = 'onyx'): Promise<Buffer> {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error('GROK_API_KEY is not configured');
+    throw new Error('OPENAI_API_KEY is not configured');
   }
 
   try {
-    // Note: Using standard TTS endpoint format - adjust if xAI's actual endpoint differs
+    // Using OpenAI TTS - voices: alloy, echo, fable, onyx, nova, shimmer
     const response = await axios.post(
-      `${GROK_API_BASE}/audio/speech`,
+      'https://api.openai.com/v1/audio/speech',
       {
-        model: 'grok-voice',
+        model: 'tts-1',
         input: text,
         voice: voice,
       },
@@ -112,7 +113,7 @@ export async function generateSpeech(text: string, voice: string = 'rex'): Promi
 
     return Buffer.from(response.data);
   } catch (error: any) {
-    console.error('Grok Voice API error:', error.response?.data || error.message);
+    console.error('OpenAI TTS API error:', error.response?.data || error.message);
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }

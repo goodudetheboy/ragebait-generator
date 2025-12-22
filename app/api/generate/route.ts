@@ -65,9 +65,9 @@ export async function POST(req: NextRequest) {
       console.log(`  ✅ Downloaded image ${i + 1}`);
     }
 
-    // Step 3: Generate speech using Grok Voice API
+    // Step 3: Generate speech using OpenAI TTS
     console.log('🎤 Generating speech...');
-    const audioBuffer = await generateSpeech(videoScript.script, 'rex');
+    const audioBuffer = await generateSpeech(videoScript.script, 'onyx'); // onyx = deep male voice
     const audioPath = path.join(
       process.cwd(),
       'public',
