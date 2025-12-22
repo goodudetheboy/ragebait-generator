@@ -41,7 +41,7 @@ export default function Home() {
     'RAGEBAIT ANYTHING',
     'RAGEBAIT YOUR DOG',
     'RAGEBAIT YOUR NEIGHBOR',
-    'RAGEBAIT *****',
+    'RAGEBAIT A *****',
     'RAGEBAIT YOUR MIL',
     'RAGEBAIT X',
     'RAGEBAIT YOURSELF',
@@ -719,7 +719,7 @@ export default function Home() {
               <form onSubmit={handleGenerate} className="space-y-6">
                 <div>
                   <label htmlFor="prompt" className="block text-black font-black mb-3 text-2xl uppercase font-bebas tracking-wider">
-                    YOUR PROMPT:
+                    YOUR TARGET:
                   </label>
                   <textarea
                     id="prompt"
