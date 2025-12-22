@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
     // Cleanup old files
     cleanupOldFiles().catch(console.error);
 
+    // Setup directories (use /tmp on Vercel, public folders locally)
+    const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'temp');
+    const videoDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'videos');
+
     // Step 1: Generate script using Grok
     console.log('📝 Generating script...');
     const videoScript = await generateScript(prompt);
@@ -54,12 +58,7 @@ export async function POST(req: NextRequest) {
       }
 
       const imageBuffer = await downloadImage(imageResult.url);
-      const imagePath = path.join(
-        process.cwd(),
-        'public',
-        'temp',
-        `image_${Date.now()}_${i}.jpg`
-      );
+      const imagePath = path.join(tempDir, `image_${Date.now()}_${i}.jpg`);
       await saveImageToFile(imageBuffer, imagePath);
       imagePaths.push(imagePath);
       console.log(`  ✅ Downloaded image ${i + 1}`);
@@ -68,24 +67,14 @@ export async function POST(req: NextRequest) {
     // Step 3: Generate speech using OpenAI TTS
     console.log('🎤 Generating speech...');
     const audioBuffer = await generateSpeech(videoScript.script, 'onyx'); // onyx = deep male voice
-    const audioPath = path.join(
-      process.cwd(),
-      'public',
-      'temp',
-      `audio_${Date.now()}.mp3`
-    );
+    const audioPath = path.join(tempDir, `audio_${Date.now()}.mp3`);
     await saveAudioToFile(audioBuffer, audioPath);
     console.log('✅ Speech generated');
 
     // Step 4: Create video
     console.log('🎥 Creating video...');
     const videoFilename = `ragebait_${Date.now()}.mp4`;
-    const outputPath = path.join(
-      process.cwd(),
-      'public',
-      'videos',
-      videoFilename
-    );
+    const outputPath = path.join(videoDir, videoFilename);
 
     await createVideo({
       scenes: videoScript.scenes,
@@ -96,16 +85,16 @@ export async function POST(req: NextRequest) {
 
     console.log('✅ Video created successfully!');
 
-    // Cleanup temp files
-    console.log('🧹 Cleaning up...');
+    // Cleanup temp files (keep video for now)
+    console.log('🧹 Cleaning up temp files...');
     const fs = require('fs/promises');
     await Promise.all([
       ...imagePaths.map(p => fs.unlink(p).catch(() => {})),
       fs.unlink(audioPath).catch(() => {}),
     ]);
 
-    // Return video URL
-    const videoUrl = `/videos/${videoFilename}`;
+    // Return video ID (will be served via API route)
+    const videoUrl = `/api/video/${videoFilename}`;
     return NextResponse.json({
       success: true,
       videoUrl,

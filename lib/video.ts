@@ -25,8 +25,8 @@ export async function createVideo(options: VideoGenerationOptions): Promise<stri
   }
 
   try {
-    // Create temp directory for processed images
-    const tempDir = path.join(process.cwd(), 'public', 'temp');
+    // Create temp directory for processed images (use /tmp for Vercel)
+    const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'temp');
     await fs.mkdir(tempDir, { recursive: true });
 
     const processedImages: string[] = [];
@@ -39,8 +39,13 @@ export async function createVideo(options: VideoGenerationOptions): Promise<stri
 
       await new Promise<void>((resolve, reject) => {
         // Create filter for text overlay with shadow/outline effect
+        // Use system fonts (cross-platform)
+        const fontPath = process.platform === 'win32' 
+          ? '/Windows/Fonts/impact.ttf'
+          : 'DejaVu-Sans-Bold'; // Linux default font
+        
         const textFilter = `drawtext=text='${escapeText(scene.caption)}':` +
-          `fontfile=/Windows/Fonts/impact.ttf:` + // Use system font
+          (process.platform === 'win32' ? `fontfile=${fontPath}:` : `font=${fontPath}:`) +
           `fontsize=80:` +
           `fontcolor=white:` +
           `borderw=4:` +
@@ -141,15 +146,11 @@ export async function saveImageToFile(imageBuffer: Buffer, outputPath: string): 
  * Clean up old files in temp directory (older than 1 hour)
  */
 export async function cleanupOldFiles() {
-  const tempDir = path.join(process.cwd(), 'public', 'temp');
-  const videosDir = path.join(process.cwd(), 'public', 'videos');
+  const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'temp');
   const oneHourAgo = Date.now() - (60 * 60 * 1000);
 
   try {
-    await Promise.all([
-      cleanDirectory(tempDir, oneHourAgo),
-      cleanDirectory(videosDir, oneHourAgo),
-    ]);
+    await cleanDirectory(tempDir, oneHourAgo);
   } catch (error) {
     console.error('Cleanup error:', error);
   }
