@@ -39,17 +39,13 @@ export async function createVideo(options: VideoGenerationOptions): Promise<stri
 
       await new Promise<void>((resolve, reject) => {
         // Create filter for text overlay with shadow/outline effect
-        // Use system fonts (cross-platform)
-        const fontPath = process.platform === 'win32' 
-          ? '/Windows/Fonts/impact.ttf'
-          : 'DejaVu-Sans-Bold'; // Linux default font
-        
+        // Use sans-serif (built-in, no file needed)
         const textFilter = `drawtext=text='${escapeText(scene.caption)}':` +
-          (process.platform === 'win32' ? `fontfile=${fontPath}:` : `font=${fontPath}:`) +
           `fontsize=80:` +
           `fontcolor=white:` +
-          `borderw=4:` +
-          `bordercolor=black:` +
+          `box=1:` +
+          `boxcolor=black@0.5:` +
+          `boxborderw=10:` +
           `x=(w-text_w)/2:` + // Center horizontally
           `y=h-200`; // 200px from bottom
 
