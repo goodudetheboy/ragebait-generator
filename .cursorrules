@@ -2,7 +2,8 @@
 
 ## Project Context
 This is a Next.js application that generates ragebait videos using:
-- Grok AI (LLM + Voice)
+- Grok AI (LLM for script generation)
+- ElevenLabs (TTS voice generation)
 - Pexels (images)
 - FFmpeg (video composition)
 
@@ -27,12 +28,15 @@ This is a Next.js application that generates ragebait videos using:
 
 ## Environment Variables
 - GROK_API_KEY - xAI Grok API key
+- ELEVENLABS_API_KEY - ElevenLabs TTS API key
 - PEXELS_API_KEY - Pexels image API key
 - ADMIN_PASSWORD - Password for authentication
 
 ## Common Tasks
 ### Add new TTS voice
 Edit `app/api/generate/route.ts` and change voice parameter in `generateSpeech()`
+Available voices: rachel, adam, bella, antoni, elli, josh, dorothy, charlotte
+Or use custom voice ID from ElevenLabs Voice Library
 
 ### Change video duration
 Edit `lib/grok.ts` system prompt

@@ -4,7 +4,8 @@ An AI-powered web app that generates provocative 20-second vertical videos (9:16
 
 ## Features
 
-- 🤖 **Grok AI Integration**: Uses Grok LLM for script generation and Grok Voice API for TTS
+- 🤖 **Grok AI Integration**: Uses Grok LLM for script generation
+- 🎤 **ElevenLabs TTS**: Natural, expressive voices (including annoying options!)
 - 🖼️ **Dynamic Image Search**: Pulls relevant images from Pexels
 - 🎥 **Automated Video Creation**: FFmpeg-powered video composition with captions
 - 📱 **Phone-Optimized**: 1080x1920 vertical format perfect for TikTok/Reels/Shorts
@@ -15,7 +16,8 @@ An AI-powered web app that generates provocative 20-second vertical videos (9:16
 - **Framework**: Next.js 15 with App Router
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **AI**: Grok (xAI) for LLM & TTS
+- **AI**: Grok (xAI) for LLM
+- **TTS**: ElevenLabs API
 - **Images**: Pexels API
 - **Video**: FFmpeg
 - **Hosting**: Vercel
@@ -38,6 +40,9 @@ Create a `.env.local` file in the root directory:
 # Grok API (get from https://x.ai/)
 GROK_API_KEY=your_grok_api_key_here
 
+# ElevenLabs API (get from https://elevenlabs.io/)
+ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+
 # Pexels API (get from https://www.pexels.com/api/)
 PEXELS_API_KEY=your_pexels_api_key_here
 
@@ -51,6 +56,13 @@ ADMIN_PASSWORD=your_secure_password_here
 - Go to https://x.ai/
 - Sign up and generate an API key
 - Copy to `GROK_API_KEY`
+
+**ElevenLabs API:**
+- Go to https://elevenlabs.io/
+- Sign up for a free account (10,000 chars/month free)
+- Go to Profile → API Keys
+- Generate and copy your API key
+- Copy to `ELEVENLABS_API_KEY`
 
 **Pexels API:**
 - Go to https://www.pexels.com/api/
@@ -70,9 +82,10 @@ Open [http://localhost:3000](http://localhost:3000)
 
 1. Enter your password
 2. Type a ragebait prompt (e.g., "Why your phone battery dies at 20%")
-3. Click "Generate Ragebait Video"
-4. Wait 2-3 minutes for AI generation + video rendering
-5. Download or share your video!
+3. **Select a voice personality** from the dropdown (default: UNHINGED & EMOTIONAL)
+4. Click "Generate Ragebait Video"
+5. Wait 2-3 minutes for AI generation + video rendering
+6. Download or share your video!
 
 ## Deployment to Vercel
 
@@ -120,7 +133,7 @@ ragebait-generator/
 1. **Script Generation**: Grok LLM generates provocative script + scene descriptions
 2. **Image Search**: For each scene, searches Pexels for relevant images
 3. **Image Processing**: Resizes images to 9:16, adds text captions with FFmpeg
-4. **TTS Generation**: Grok Voice API generates speech audio
+4. **TTS Generation**: ElevenLabs generates natural, expressive speech audio
 5. **Video Assembly**: FFmpeg combines images + audio into final MP4
 6. **Cleanup**: Deletes temporary files
 
@@ -128,11 +141,17 @@ ragebait-generator/
 
 ### Change TTS Voice
 
-Edit `app/api/generate/route.ts`:
+**Voice selection is now built into the UI!** Just select from the dropdown when generating.
 
-```typescript
-const audioBuffer = await generateSpeech(videoScript.script, 'leo'); // rex, eve, sal, mika, valentin
-```
+Available voice personalities:
+- **😤 MAXIMUM RAGE**: Unhinged & Emotional (default), Condescending & Seductive, Alpha Male Energy
+- **🤬 ANNOYING AF**: Valley Girl Energy, ASMR Whisper Creep, Smug Know-It-All
+- **😏 PASSIVE AGGRESSIVE**: Deep Voice Mansplainer, British Karen
+
+To add custom voices from ElevenLabs Voice Library:
+1. Visit https://elevenlabs.io/voice-library/annoying
+2. Find an annoying voice and copy its ID
+3. Add it to the dropdown in `app/page.tsx` with a personality description
 
 ### Adjust Video Duration
 
@@ -163,9 +182,10 @@ bordercolor=black:     // Outline color
 - Pexels might not have images for niche keywords
 - The system will throw an error; you can add a placeholder image fallback
 
-### "Invalid Grok Voice API response"
-- The Grok Voice API format in this project is based on documentation
-- If xAI's actual endpoint differs, you may need to adjust `lib/grok.ts`
+### "Failed to generate speech"
+- Check that your ELEVENLABS_API_KEY is valid
+- Verify you haven't exceeded your ElevenLabs monthly quota
+- Free tier: 10,000 characters/month
 
 ## License
 

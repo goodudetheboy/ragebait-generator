@@ -17,6 +17,13 @@ npm install
 4. Generate a new API key
 5. Copy the key
 
+#### ElevenLabs API Key
+1. Go to https://elevenlabs.io/
+2. Sign up for a free account
+3. Go to Profile → API Keys (or https://elevenlabs.io/app/settings/api-keys)
+4. Click "Create API Key"
+5. Copy the key (Free tier: 10,000 characters/month)
+
 #### Pexels API Key
 1. Go to https://www.pexels.com/api/
 2. Click "Get Started" or "Sign Up"
@@ -30,6 +37,7 @@ Create a file named `.env.local` in the project root:
 
 ```bash
 GROK_API_KEY=xai-xxxxxxxxxxxxxxxxxxxxx
+ELEVENLABS_API_KEY=sk_xxxxxxxxxxxxxxxxxxxxx
 PEXELS_API_KEY=xxxxxxxxxxxxxxxxxxxxx
 ADMIN_PASSWORD=your_secure_password_123
 ```
@@ -48,9 +56,10 @@ Open http://localhost:3000
 
 1. Enter your `ADMIN_PASSWORD`
 2. Try a prompt like: "Why your phone battery dies at 20%"
-3. Click "Generate Ragebait Video"
-4. Wait 2-3 minutes
-5. Watch your video!
+3. **Select a voice** from the dropdown (Elli is default)
+4. Click "Generate Ragebait Video"
+5. Wait 2-3 minutes
+6. Watch your video!
 
 ---
 
@@ -79,6 +88,7 @@ vercel
 4. Select your repository
 5. Add environment variables:
    - `GROK_API_KEY`
+   - `ELEVENLABS_API_KEY`
    - `PEXELS_API_KEY`
    - `ADMIN_PASSWORD`
 6. Deploy!
@@ -123,11 +133,13 @@ Edit `lib/grok.ts` - line ~22:
 
 ### Change TTS Voice
 
-Edit `app/api/generate/route.ts` - line ~65:
-```typescript
-const audioBuffer = await generateSpeech(videoScript.script, 'leo');
-// Available: rex, sal, eve, leo, mika, valentin
-```
+**Voice selection is now in the UI!** Just use the dropdown when generating.
+
+Available voices in the dropdown:
+- **Ragebait**: Elli (default), Charlotte, Adam
+- **Professional**: Rachel, Bella, Antoni, Josh, Dorothy
+
+To add more voices, edit the `<select>` element in `app/page.tsx`
 
 ### Change Text Style
 
@@ -146,10 +158,14 @@ borderw=6:              // Thicker outline
 - Make sure `.env.local` exists in project root
 - Restart dev server after creating `.env.local`
 
+### "ELEVENLABS_API_KEY is not configured"
+- Make sure you added ELEVENLABS_API_KEY to `.env.local`
+- Restart dev server after adding the key
+
 ### "Failed to generate speech"
-- Grok Voice API might have a different endpoint format
-- Check xAI documentation for latest API format
-- You may need to adjust `lib/grok.ts`
+- Check that your ElevenLabs API key is valid
+- Verify you haven't exceeded your monthly quota (10,000 chars for free tier)
+- Check ElevenLabs dashboard for API usage
 
 ### "No image found for scene"
 - Try simpler keywords (e.g., "angry person" instead of "furious millennial")

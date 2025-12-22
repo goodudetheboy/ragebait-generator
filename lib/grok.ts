@@ -83,28 +83,53 @@ Rules:
   }
 }
 
+// ElevenLabs Voice IDs - Mapped to RAGEBAIT personalities
+export const ELEVENLABS_VOICES = {
+  // MAXIMUM RAGE - Most engaging for ragebait
+  'elli': 'MF3mGyEYCl7XYWbV9V6O',      // UNHINGED & EMOTIONAL ⭐
+  'charlotte': 'XB0fDUnXU5powFXDhCwa',  // CONDESCENDING & SEDUCTIVE
+  'adam': 'pNInz6obpgDQGcFmaJgB',       // ALPHA MALE ENERGY
+  
+  // ANNOYING AF - High irritation factor
+  'rachel': 'IKne3meq5aSn9XLyUdCD',     // VALLEY GIRL ENERGY
+  'bella': 'EXAVITQu4vr4xnSDxMaL',      // ASMR WHISPER CREEP
+  'antoni': 'ErXwobaYiN019PkySvjV',     // SMUG KNOW-IT-ALL
+  
+  // PASSIVE AGGRESSIVE - Subtle but annoying
+  'josh': 'TxGEqnHWrfWFTfGW9XjX',       // DEEP VOICE MANSPLAINER
+  'dorothy': 'ThT5KcBeYPX3keUQqHPh',    // BRITISH KAREN
+} as const;
+
 /**
- * Generate speech audio using OpenAI TTS API
- * (Grok Voice API not yet publicly available)
+ * Generate speech audio using ElevenLabs API
+ * More natural and expressive than OpenAI TTS
  */
-export async function generateSpeech(text: string, voice: string = 'onyx'): Promise<Buffer> {
-  const apiKey = process.env.OPENAI_API_KEY;
+export async function generateSpeech(
+  text: string, 
+  voiceId: string = ELEVENLABS_VOICES.rachel
+): Promise<Buffer> {
+  const apiKey = process.env.ELEVENLABS_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not configured');
+    throw new Error('ELEVENLABS_API_KEY is not configured');
   }
 
   try {
-    // Using OpenAI TTS - voices: alloy, echo, fable, onyx, nova, shimmer
+    // Using ElevenLabs TTS - Tuned for MAXIMUM RAGEBAIT
     const response = await axios.post(
-      'https://api.openai.com/v1/audio/speech',
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
       {
-        model: 'tts-1',
-        input: text,
-        voice: voice,
+        text: text,
+        model_id: 'eleven_turbo_v2_5', // Fastest, most cost-effective model
+        voice_settings: {
+          stability: 0.35, // Lower = more expressive/unhinged
+          similarity_boost: 0.75, // Keep natural characteristics
+          style: 0.75, // Higher = more exaggerated/annoying
+          use_speaker_boost: true // Boost clarity for engagement
+        }
       },
       {
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
+          'xi-api-key': apiKey,
           'Content-Type': 'application/json',
         },
         responseType: 'arraybuffer',
@@ -113,7 +138,7 @@ export async function generateSpeech(text: string, voice: string = 'onyx'): Prom
 
     return Buffer.from(response.data);
   } catch (error: any) {
-    console.error('OpenAI TTS API error:', error.response?.data || error.message);
+    console.error('ElevenLabs TTS API error:', error.response?.data || error.message);
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }

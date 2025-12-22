@@ -14,6 +14,7 @@ export default function Home() {
   const [hasSharedArrayBuffer, setHasSharedArrayBuffer] = useState(true);
  
   const [prompt, setPrompt] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState('elli'); // Default voice
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -149,7 +150,7 @@ export default function Home() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: storedPassword, prompt }),
+        body: JSON.stringify({ password: storedPassword, prompt, voice: selectedVoice }),
       });
 
       const data = await response.json();
@@ -533,6 +534,37 @@ export default function Home() {
                     placeholder="WHY YOUR PHONE BATTERY DIES AT 20%..."
                     disabled={loading}
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="voice" className="block text-black font-black mb-3 text-xl uppercase font-bebas tracking-wider">
+                    🎤 VOICE PERSONALITY:
+                  </label>
+                  <select
+                    id="voice"
+                    value={selectedVoice}
+                    onChange={(e) => setSelectedVoice(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border-4 border-black text-black text-lg font-bold focus:outline-none focus:ring-4 focus:ring-black font-bebas tracking-wider cursor-pointer"
+                    disabled={loading}
+                  >
+                    <optgroup label="😤 MAXIMUM RAGE">
+                      <option value="elli">UNHINGED & EMOTIONAL ⭐ (Default)</option>
+                      <option value="charlotte">CONDESCENDING & SEDUCTIVE</option>
+                      <option value="adam">ALPHA MALE ENERGY</option>
+                    </optgroup>
+                    <optgroup label="🤬 ANNOYING AF">
+                      <option value="rachel">VALLEY GIRL ENERGY</option>
+                      <option value="bella">ASMR WHISPER CREEP</option>
+                      <option value="antoni">SMUG KNOW-IT-ALL</option>
+                    </optgroup>
+                    <optgroup label="😏 PASSIVE AGGRESSIVE">
+                      <option value="josh">DEEP VOICE MANSPLAINER</option>
+                      <option value="dorothy">BRITISH KAREN</option>
+                    </optgroup>
+                  </select>
+                  <p className="text-black text-xs mt-2 font-bebas tracking-wider">
+                    💡 TIP: UNHINGED & CONDESCENDING GET THE MOST ENGAGEMENT
+                  </p>
                 </div>
 
                 <button

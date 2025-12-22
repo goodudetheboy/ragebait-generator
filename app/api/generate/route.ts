@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateScript, generateSpeech } from '@/lib/grok';
+import { generateScript, generateSpeech, ELEVENLABS_VOICES } from '@/lib/grok';
 import { searchImage } from '@/lib/pexels';
 
 export const maxDuration = 60; // Only need 60s for script + image search + TTS
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     // Password verification
-    const { password, prompt } = await req.json();
+    const { password, prompt, voice } = await req.json();
     
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json(
@@ -23,6 +23,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate voice if provided (optional, defaults to elli)
+    const selectedVoice = voice || 'elli';
 
     console.log('🎬 Starting video generation for prompt:', prompt);
 
@@ -50,9 +53,11 @@ export async function POST(req: NextRequest) {
       console.log(`  ✅ Found image ${i + 1}`);
     }
 
-    // Step 3: Generate speech using OpenAI TTS
-    console.log('🎤 Generating speech...');
-    const audioBuffer = await generateSpeech(videoScript.script, 'onyx');
+    // Step 3: Generate speech using ElevenLabs TTS
+    console.log(`🎤 Generating speech with voice: ${selectedVoice}...`);
+    // Get voice ID from ELEVENLABS_VOICES or use as custom voice ID
+    const voiceId = ELEVENLABS_VOICES[selectedVoice as keyof typeof ELEVENLABS_VOICES] || selectedVoice;
+    const audioBuffer = await generateSpeech(videoScript.script, voiceId);
     const audioBase64 = audioBuffer.toString('base64');
     console.log('✅ Speech generated');
 
@@ -65,10 +70,11 @@ export async function POST(req: NextRequest) {
       audioBase64, // Send audio as base64
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Video generation error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to generate video';
     return NextResponse.json(
-      { error: error.message || 'Failed to generate video' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
