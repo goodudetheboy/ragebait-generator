@@ -478,6 +478,42 @@ export default function Home() {
     });
   };
 
+  const handleTakePhoto = async () => {
+    if (uploadedImages.length >= 3) {
+      alert('❌ MAX 3 IMAGES');
+      return;
+    }
+
+    try {
+      // Create a file input that only accepts camera
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.capture = 'environment'; // Use back camera by default
+      
+      input.onchange = (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files[0]) {
+          const file = target.files[0];
+          const reader = new FileReader();
+          
+          reader.onload = (event) => {
+            const base64 = event.target?.result as string;
+            setUploadedImages(prev => [...prev, base64]);
+            setImagePreviewUrls(prev => [...prev, base64]);
+          };
+          
+          reader.readAsDataURL(file);
+        }
+      };
+      
+      input.click();
+    } catch (error) {
+      console.error('Camera error:', error);
+      alert('❌ CAMERA ACCESS FAILED');
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('ragebait_password');
     setIsAuthenticated(false);
@@ -754,14 +790,30 @@ export default function Home() {
                         className="hidden"
                         disabled={loading}
                       />
-                      <label
-                        htmlFor="images"
-                        className="block w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider"
-                      >
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <label
+                          htmlFor="images"
+                          className="block w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider"
+                        >
+                          📁 UPLOAD
+                        </label>
+                        
+                        <button
+                          type="button"
+                          onClick={handleTakePhoto}
+                          disabled={loading || uploadedImages.length >= 3}
+                          className="w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          📷 TAKE PHOTO
+                        </button>
+                      </div>
+                      
+                      <div className="text-center text-sm font-bold font-bebas tracking-wider mb-3">
                         {uploadedImages.length > 0 
-                          ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} UPLOADED` 
-                          : '📁 CLICK TO UPLOAD (MAX 3)'}
-                      </label>
+                          ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} ADDED` 
+                          : 'MAX 3 IMAGES'}
+                      </div>
                       
                       {imagePreviewUrls.length > 0 && (
                         <div className="mt-3 grid grid-cols-3 gap-2">
