@@ -17,6 +17,8 @@ export default function Home() {
   const [selectedVoice, setSelectedVoice] = useState('elli'); // Default voice
   const [uploadedImages, setUploadedImages] = useState<string[]>([]); // Base64 images
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // For preview
+  const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
+  const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -600,83 +602,105 @@ export default function Home() {
                   />
                 </div>
 
-                <div>
-                  <label htmlFor="images" className="block text-black font-black mb-3 text-xl uppercase font-bebas tracking-wider">
-                    📸 UPLOAD IMAGES (OPTIONAL):
-                  </label>
-                  <input
-                    type="file"
-                    id="images"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    disabled={loading}
-                  />
-                  <label
-                    htmlFor="images"
-                    className="block w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider"
+                {/* Collapsible Image Upload Section */}
+                <div className="border-4 border-black">
+                  <button
+                    type="button"
+                    onClick={() => setShowImageUpload(!showImageUpload)}
+                    className="w-full px-4 py-3 bg-black text-white font-black text-xl uppercase font-bebas tracking-wider flex items-center justify-between hover:bg-gray-800 transition-all"
                   >
-                    {uploadedImages.length > 0 
-                      ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} UPLOADED` 
-                      : '📁 CLICK TO UPLOAD (MAX 3)'}
-                  </label>
+                    <span>📸 UPLOAD IMAGES {uploadedImages.length > 0 && `(${uploadedImages.length})`}</span>
+                    <span className="text-2xl">{showImageUpload ? '▼' : '▶'}</span>
+                  </button>
                   
-                  {imagePreviewUrls.length > 0 && (
-                    <div className="mt-3 grid grid-cols-3 gap-2">
-                      {imagePreviewUrls.map((url, index) => (
-                        <div key={index} className="relative border-4 border-black">
-                          <img 
-                            src={url} 
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-24 object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold hover:bg-red-600 font-bebas"
-                          >
-                            ✕
-                          </button>
+                  {showImageUpload && (
+                    <div className="p-4 bg-white">
+                      <input
+                        type="file"
+                        id="images"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={loading}
+                      />
+                      <label
+                        htmlFor="images"
+                        className="block w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider"
+                      >
+                        {uploadedImages.length > 0 
+                          ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} UPLOADED` 
+                          : '📁 CLICK TO UPLOAD (MAX 3)'}
+                      </label>
+                      
+                      {imagePreviewUrls.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 gap-2">
+                          {imagePreviewUrls.map((url, index) => (
+                            <div key={index} className="relative border-4 border-black">
+                              <img 
+                                src={url} 
+                                alt={`Upload ${index + 1}`}
+                                className="w-full h-24 object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold hover:bg-red-600 font-bebas"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                      
+                      <p className="text-black text-xs mt-3 font-bebas tracking-wider">
+                        💡 TIP: IMAGES ONLY = AI GENERATES RAGEBAIT ABOUT THEM | IMAGES + PROMPT = CUSTOM SCRIPT WITH YOUR IMAGES
+                      </p>
                     </div>
                   )}
-                  
-                  <p className="text-black text-xs mt-2 font-bebas tracking-wider">
-                    💡 TIP: IMAGES ONLY = AI GENERATES RAGEBAIT ABOUT THEM | IMAGES + PROMPT = CUSTOM SCRIPT WITH YOUR IMAGES
-                  </p>
                 </div>
 
-                <div>
-                  <label htmlFor="voice" className="block text-black font-black mb-3 text-xl uppercase font-bebas tracking-wider">
-                    🎤 VOICE PERSONALITY:
-                  </label>
-                  <select
-                    id="voice"
-                    value={selectedVoice}
-                    onChange={(e) => setSelectedVoice(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border-4 border-black text-black text-lg font-bold focus:outline-none focus:ring-4 focus:ring-black font-bebas tracking-wider cursor-pointer"
-                    disabled={loading}
+                {/* Collapsible Voice Personality Section */}
+                <div className="border-4 border-black">
+                  <button
+                    type="button"
+                    onClick={() => setShowVoiceSelector(!showVoiceSelector)}
+                    className="w-full px-4 py-3 bg-black text-white font-black text-xl uppercase font-bebas tracking-wider flex items-center justify-between hover:bg-gray-800 transition-all"
                   >
-                    <optgroup label="😤 MAXIMUM RAGE">
-                      <option value="elli">UNHINGED & EMOTIONAL ⭐ (Default)</option>
-                      <option value="charlotte">CONDESCENDING & SEDUCTIVE</option>
-                      <option value="adam">ALPHA MALE ENERGY</option>
-                    </optgroup>
-                    <optgroup label="🤬 ANNOYING AF">
-                      <option value="rachel">VALLEY GIRL ENERGY</option>
-                      <option value="bella">ASMR WHISPER CREEP</option>
-                      <option value="antoni">SMUG KNOW-IT-ALL</option>
-                    </optgroup>
-                    <optgroup label="😏 PASSIVE AGGRESSIVE">
-                      <option value="josh">DEEP VOICE MANSPLAINER</option>
-                      <option value="dorothy">BRITISH KAREN</option>
-                    </optgroup>
-                  </select>
-                  <p className="text-black text-xs mt-2 font-bebas tracking-wider">
-                    💡 TIP: UNHINGED & CONDESCENDING GET THE MOST ENGAGEMENT
-                  </p>
+                    <span>🎤 VOICE: {selectedVoice === 'elli' ? 'UNHINGED & EMOTIONAL' : selectedVoice.toUpperCase()}</span>
+                    <span className="text-2xl">{showVoiceSelector ? '▼' : '▶'}</span>
+                  </button>
+                  
+                  {showVoiceSelector && (
+                    <div className="p-4 bg-white">
+                      <select
+                        id="voice"
+                        value={selectedVoice}
+                        onChange={(e) => setSelectedVoice(e.target.value)}
+                        className="w-full px-4 py-3 bg-white border-4 border-black text-black text-lg font-bold focus:outline-none focus:ring-4 focus:ring-black font-bebas tracking-wider cursor-pointer"
+                        disabled={loading}
+                      >
+                        <optgroup label="😤 MAXIMUM RAGE">
+                          <option value="elli">UNHINGED & EMOTIONAL ⭐ (Default)</option>
+                          <option value="charlotte">CONDESCENDING & SEDUCTIVE</option>
+                          <option value="adam">ALPHA MALE ENERGY</option>
+                        </optgroup>
+                        <optgroup label="🤬 ANNOYING AF">
+                          <option value="rachel">VALLEY GIRL ENERGY</option>
+                          <option value="bella">ASMR WHISPER CREEP</option>
+                          <option value="antoni">SMUG KNOW-IT-ALL</option>
+                        </optgroup>
+                        <optgroup label="😏 PASSIVE AGGRESSIVE">
+                          <option value="josh">DEEP VOICE MANSPLAINER</option>
+                          <option value="dorothy">BRITISH KAREN</option>
+                        </optgroup>
+                      </select>
+                      <p className="text-black text-xs mt-3 font-bebas tracking-wider">
+                        💡 TIP: UNHINGED & CONDESCENDING GET THE MOST ENGAGEMENT
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <button
