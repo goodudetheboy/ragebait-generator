@@ -495,12 +495,18 @@ export default function Home() {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
           const file = target.files[0];
-          const reader = new FileReader();
           
+          // Create preview URL
+          const previewUrl = URL.createObjectURL(file);
+          
+          // Convert to base64
+          const reader = new FileReader();
           reader.onload = (event) => {
-            const base64 = event.target?.result as string;
-            setUploadedImages(prev => [...prev, base64]);
-            setImagePreviewUrls(prev => [...prev, base64]);
+            const result = event.target?.result as string;
+            // Remove data URL prefix to get just base64 (same as normal upload)
+            const base64Data = result.split(',')[1];
+            setUploadedImages(prev => [...prev, base64Data]);
+            setImagePreviewUrls(prev => [...prev, previewUrl]);
           };
           
           reader.readAsDataURL(file);
