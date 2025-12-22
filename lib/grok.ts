@@ -73,8 +73,22 @@ Rules:
     ];
     
     if (hasImages) {
+      // Validate and clean base64 strings
+      const cleanedImages = images!.map(base64 => {
+        // Remove any whitespace, newlines, or extra characters
+        let cleaned = base64.trim().replace(/\s/g, '');
+        
+        // Remove data URL prefix if it exists
+        if (cleaned.startsWith('data:image')) {
+          cleaned = cleaned.split(',')[1];
+        }
+        
+        console.log(`Image size: ${cleaned.length} characters`);
+        return cleaned;
+      });
+      
       // Grok Vision supports images
-      const imageContents = images!.map(base64 => ({
+      const imageContents = cleanedImages.map(base64 => ({
         type: 'image_url',
         image_url: {
           url: `data:image/jpeg;base64,${base64}`
@@ -126,6 +140,20 @@ Rules:
     return result;
   } catch (error: any) {
     console.error('Grok API error:', error.response?.data || error.message);
+    console.error('Full error:', error);
+    
+    // Better error message for common issues
+    if (error.response?.data) {
+      const errorData = error.response.data;
+      if (errorData.error?.includes('Base64') || errorData.error?.includes('image')) {
+        throw new Error('Image format error. Please try a different image.');
+      }
+      if (errorData.error?.includes('model')) {
+        throw new Error(`Model error: ${errorData.error}`);
+      }
+      throw new Error(`Grok API error: ${errorData.error || errorData.message || 'Unknown error'}`);
+    }
+    
     throw new Error(`Failed to generate script: ${error.message}`);
   }
 }

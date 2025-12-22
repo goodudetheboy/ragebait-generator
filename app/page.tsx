@@ -505,6 +505,19 @@ export default function Home() {
             const result = event.target?.result as string;
             // Remove data URL prefix to get just base64 (same as normal upload)
             const base64Data = result.split(',')[1];
+            
+            // Validate base64
+            if (!base64Data || base64Data.length === 0) {
+              console.error('Empty base64 data from camera');
+              alert('❌ FAILED TO PROCESS IMAGE');
+              return;
+            }
+            
+            console.log('Camera image captured:', {
+              size: base64Data.length,
+              firstChars: base64Data.substring(0, 20)
+            });
+            
             setUploadedImages(prev => [...prev, base64Data]);
             setImagePreviewUrls(prev => [...prev, previewUrl]);
           };
