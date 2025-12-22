@@ -33,26 +33,10 @@ export async function searchImage(query: string): Promise<ImageResult | null> {
     }
 
     return null;
-  } catch (error: any) {
-    console.error('Pexels API error:', error.message);
-    throw new Error(`Failed to search image: ${error.message}`);
-  }
-}
-
-/**
- * Download image from URL
- */
-export async function downloadImage(url: string): Promise<Buffer> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch (error: any) {
-    console.error('Image download error:', error.message);
-    throw new Error(`Failed to download image: ${error.message}`);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Pexels API error:', errorMessage);
+    throw new Error(`Failed to search image: ${errorMessage}`);
   }
 }
 

@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { toBlobURL } from '@ffmpeg/util';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,12 +12,15 @@ export default function Home() {
 
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [videoData, setVideoData] = useState<{
     script: string;
     scenes: Array<{ caption: string; duration: number; keywords: string }>;
   } | null>(null);
+  
+  const ffmpegRef = useRef<FFmpeg | null>(null);
 
   // Check localStorage on mount
   useEffect(() => {
@@ -77,8 +82,11 @@ export default function Home() {
     setError('');
     setVideoUrl('');
     setVideoData(null);
+    setProgress('');
 
     try {
+      // Step 1: Get content from backend
+      setProgress('GENERATING SCRIPT...');
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -88,16 +96,206 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'VIDEO GENERATION FAILED');
+        throw new Error(data.error || 'GENERATION FAILED');
       }
 
-      setVideoUrl(data.videoUrl);
-      setVideoData(data);
+      setVideoData({ script: data.script, scenes: data.scenes });
+
+      // Step 2: Load FFmpeg in browser
+      setProgress('LOADING VIDEO PROCESSOR...');
+      
+      // Check if SharedArrayBuffer is available
+      if (typeof SharedArrayBuffer === 'undefined') {
+        throw new Error('SHAREDARRAYBUFFER NOT AVAILABLE - CHECK BROWSER CONSOLE');
+      }
+      
+      if (!ffmpegRef.current) {
+        const ffmpeg = new FFmpeg();
+        
+        // Log FFmpeg messages for debugging
+        ffmpeg.on('log', ({ message }) => {
+          console.log('FFmpeg:', message);
+        });
+        
+        console.log('Loading FFmpeg core...');
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd';
+        
+        try {
+          await ffmpeg.load({
+            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+          });
+          console.log('✓ FFmpeg loaded successfully');
+        } catch (loadError) {
+          console.error('FFmpeg load error:', loadError);
+          throw new Error('FAILED TO LOAD FFMPEG - CHECK BROWSER CONSOLE');
+        }
+        
+        ffmpegRef.current = ffmpeg;
+      }
+
+      const ffmpeg = ffmpegRef.current;
+
+      // Step 3: Process images with text overlays
+      setProgress('PROCESSING IMAGES...');
+      const processedImages: string[] = [];
+      
+      for (let i = 0; i < data.scenes.length; i++) {
+        setProgress(`PROCESSING IMAGE ${i + 1}/${data.scenes.length}...`);
+        const scene = data.scenes[i];
+        const imageUrl = data.imageUrls[i];
+        
+        console.log(`Processing scene ${i + 1}:`, scene.caption);
+        
+        // Download image and resize in browser first (to reduce memory usage)
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = imageUrl;
+        });
+        
+        // Draw to canvas and resize to 540x960 (smaller = less memory for FFmpeg)
+        const canvas = document.createElement('canvas');
+        canvas.width = 540;
+        canvas.height = 960;
+        const ctx = canvas.getContext('2d')!;
+        
+        // Calculate scaling to fill 9:16 frame
+        const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        const x = (canvas.width - scaledWidth) / 2;
+        const y = (canvas.height - scaledHeight) / 2;
+        
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+        
+        // Add text overlay directly on canvas
+        const escapedText = escapeText(scene.caption);
+        console.log(`Adding text: "${escapedText}"`);
+        
+        ctx.font = 'bold 30px Arial'; // Scaled down for 540x960
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // Measure text for background box
+        const textMetrics = ctx.measureText(escapedText);
+        const textWidth = textMetrics.width;
+        const textHeight = 40; // Approximate height (scaled down)
+        const textX = canvas.width / 2;
+        const textY = canvas.height - 75; // Scaled down
+        
+        // Draw black background box
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(
+          textX - textWidth / 2 - 20,
+          textY - textHeight / 2 - 10,
+          textWidth + 40,
+          textHeight + 20
+        );
+        
+        // Draw white text
+        ctx.fillStyle = 'white';
+        ctx.fillText(escapedText, textX, textY);
+        
+        // Convert canvas to blob with lower quality to save memory
+        const blob = await new Promise<Blob>((resolve) => {
+          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.7);
+        });
+        
+        // Write to FFmpeg
+        const imageData = new Uint8Array(await blob.arrayBuffer());
+        await ffmpeg.writeFile(`scene_${i}.jpg`, imageData);
+        
+        processedImages.push(`scene_${i}.jpg`);
+        console.log(`✓ Scene ${i + 1} processed`);
+      }
+
+      // Step 4: Create concat file
+      setProgress('COMBINING SCENES...');
+      let concatContent = '';
+      for (let i = 0; i < processedImages.length; i++) {
+        concatContent += `file '${processedImages[i]}'\n`;
+        concatContent += `duration ${data.scenes[i].duration}\n`;
+      }
+      concatContent += `file '${processedImages[processedImages.length - 1]}'\n`;
+      await ffmpeg.writeFile('concat.txt', new TextEncoder().encode(concatContent));
+
+      // Step 5: Process audio (compress it first to save memory)
+      setProgress('ADDING AUDIO...');
+      const audioData = Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0));
+      await ffmpeg.writeFile('input_audio.mp3', audioData);
+      
+      // Re-encode audio to lower bitrate to save memory
+      console.log('Compressing audio...');
+      await ffmpeg.exec([
+        '-i', 'input_audio.mp3',
+        '-b:a', '64k',
+        '-ar', '22050',
+        'audio.mp3'
+      ]);
+      await ffmpeg.deleteFile('input_audio.mp3');
+      console.log('✓ Audio compressed');
+
+      // Step 6: Create final video with lower memory settings
+      setProgress('CREATING VIDEO...');
+      console.log('Creating final video with concat...');
+      await ffmpeg.exec([
+        '-f', 'concat',
+        '-safe', '0',
+        '-i', 'concat.txt',
+        '-i', 'audio.mp3',
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-crf', '28',
+        '-c:a', 'copy',    // Don't re-encode audio
+        '-shortest',
+        '-pix_fmt', 'yuv420p',
+        'output.mp4'
+      ]);
+      console.log('✓ Video created successfully');
+
+      // Step 7: Get video data
+      setProgress('FINALIZING...');
+      const videoData = await ffmpeg.readFile('output.mp4');
+      const videoBlob = new Blob([new Uint8Array(videoData as Uint8Array)], { type: 'video/mp4' });
+      const videoObjectUrl = URL.createObjectURL(videoBlob);
+      
+      setVideoUrl(videoObjectUrl);
+      setProgress('');
+
+      // Cleanup FFmpeg virtual filesystem
+      try {
+        await ffmpeg.deleteFile('audio.mp3');
+        await ffmpeg.deleteFile('concat.txt');
+        await ffmpeg.deleteFile('output.mp4');
+        for (let i = 0; i < processedImages.length; i++) {
+          await ffmpeg.deleteFile(processedImages[i]);
+        }
+      } catch (cleanupError) {
+        console.warn('Cleanup error (non-critical):', cleanupError);
+      }
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'GENERATION FAILED');
+      console.error('Video generation error:', err);
+      const errorMsg = err instanceof Error ? err.message : 'GENERATION FAILED';
+      setError(errorMsg.toUpperCase());
     } finally {
       setLoading(false);
+      setProgress('');
     }
+  };
+
+  const escapeText = (text: string): string => {
+    // Simple escape for FFmpeg drawtext - remove problematic characters
+    return text
+      .replace(/'/g, '')
+      .replace(/:/g, ' ')
+      .replace(/\[/g, '')
+      .replace(/\]/g, '')
+      .replace(/\\/g, '')
+      .toUpperCase();
   };
 
   const handleLogout = () => {
@@ -196,7 +394,7 @@ export default function Home() {
                 disabled={loading}
                 className="w-full py-5 px-6 bg-black text-white text-2xl font-black uppercase border-4 border-black hover:bg-white hover:text-black transition-all disabled:opacity-50 font-bebas tracking-wider"
               >
-                {loading ? '⏳ GENERATING... (2-3 MIN)' : '🔥 GENERATE VIDEO'}
+                {loading ? (progress || '⏳ GENERATING...') : '🔥 GENERATE VIDEO'}
               </button>
             </form>
 
@@ -253,7 +451,7 @@ export default function Home() {
                 {/* Download Button */}
                 <a
                   href={videoUrl}
-                  download
+                  download={`ragebait_${Date.now()}.mp4`}
                   className="block w-full py-4 px-6 bg-black text-white font-black text-xl text-center uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                 >
                   💾 DOWNLOAD VIDEO

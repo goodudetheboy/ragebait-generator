@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 import { generateScript, generateSpeech } from '@/lib/grok';
-import { searchImage, downloadImage } from '@/lib/pexels';
-import { createVideo, saveAudioToFile, saveImageToFile, cleanupOldFiles } from '@/lib/video';
+import { searchImage } from '@/lib/pexels';
 
-export const maxDuration = 300; // 5 minutes max for Vercel Pro
+export const maxDuration = 60; // Only need 60s for script + image search + TTS
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
@@ -28,21 +26,14 @@ export async function POST(req: NextRequest) {
 
     console.log('🎬 Starting video generation for prompt:', prompt);
 
-    // Cleanup old files
-    cleanupOldFiles().catch(console.error);
-
-    // Setup directories (use /tmp on Vercel, public folders locally)
-    const tempDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'temp');
-    const videoDir = process.env.VERCEL ? '/tmp' : path.join(process.cwd(), 'public', 'videos');
-
     // Step 1: Generate script using Grok
     console.log('📝 Generating script...');
     const videoScript = await generateScript(prompt);
     console.log('✅ Script generated:', videoScript);
 
-    // Step 2: Search and download images for each scene
+    // Step 2: Search for images (just get URLs, don't download)
     console.log('🖼️  Searching for images...');
-    const imagePaths: string[] = [];
+    const imageUrls: string[] = [];
     
     for (let i = 0; i < videoScript.scenes.length; i++) {
       const scene = videoScript.scenes[i];
@@ -52,54 +43,26 @@ export async function POST(req: NextRequest) {
       
       if (!imageResult) {
         console.warn(`  No image found for: ${scene.keywords}, using placeholder`);
-        // Use a default placeholder image if search fails
-        // For now, throw error - you can add placeholder image later
         throw new Error(`No image found for scene: ${scene.keywords}`);
       }
 
-      const imageBuffer = await downloadImage(imageResult.url);
-      const imagePath = path.join(tempDir, `image_${Date.now()}_${i}.jpg`);
-      await saveImageToFile(imageBuffer, imagePath);
-      imagePaths.push(imagePath);
-      console.log(`  ✅ Downloaded image ${i + 1}`);
+      imageUrls.push(imageResult.url);
+      console.log(`  ✅ Found image ${i + 1}`);
     }
 
     // Step 3: Generate speech using OpenAI TTS
     console.log('🎤 Generating speech...');
-    const audioBuffer = await generateSpeech(videoScript.script, 'onyx'); // onyx = deep male voice
-    const audioPath = path.join(tempDir, `audio_${Date.now()}.mp3`);
-    await saveAudioToFile(audioBuffer, audioPath);
+    const audioBuffer = await generateSpeech(videoScript.script, 'onyx');
+    const audioBase64 = audioBuffer.toString('base64');
     console.log('✅ Speech generated');
 
-    // Step 4: Create video
-    console.log('🎥 Creating video...');
-    const videoFilename = `ragebait_${Date.now()}.mp4`;
-    const outputPath = path.join(videoDir, videoFilename);
-
-    await createVideo({
-      scenes: videoScript.scenes,
-      imagePaths,
-      audioPath,
-      outputPath,
-    });
-
-    console.log('✅ Video created successfully!');
-
-    // Cleanup temp files (keep video for now)
-    console.log('🧹 Cleaning up temp files...');
-    const fs = require('fs/promises');
-    await Promise.all([
-      ...imagePaths.map(p => fs.unlink(p).catch(() => {})),
-      fs.unlink(audioPath).catch(() => {}),
-    ]);
-
-    // Return video ID (will be served via API route)
-    const videoUrl = `/api/video/${videoFilename}`;
+    // Return everything to frontend for video processing
     return NextResponse.json({
       success: true,
-      videoUrl,
       script: videoScript.script,
       scenes: videoScript.scenes,
+      imageUrls,
+      audioBase64, // Send audio as base64
     });
 
   } catch (error: any) {
