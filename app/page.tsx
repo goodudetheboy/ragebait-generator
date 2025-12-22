@@ -19,6 +19,7 @@ export default function Home() {
   const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // For preview
   const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
+  const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -235,9 +236,66 @@ export default function Home() {
           textHeight + 20
         );
         
-        // Draw white text
+        // Draw white text (caption)
         ctx.fillStyle = 'white';
         ctx.fillText(escapedText, textX, textY);
+        
+        // Add subtitle at bottom if enabled
+        if (enableSubtitles && data.script) {
+          // Split script into segments based on scene count
+          const words = data.script.split(' ');
+          const wordsPerScene = Math.ceil(words.length / data.scenes.length);
+          const startIndex = i * wordsPerScene;
+          const endIndex = Math.min(startIndex + wordsPerScene, words.length);
+          const sceneScript = words.slice(startIndex, endIndex).join(' ');
+          const escapedSubtitle = escapeText(sceneScript);
+          
+          // Subtitle styling (smaller, at bottom)
+          ctx.font = 'bold 20px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          
+          // Split subtitle into multiple lines if too long
+          const maxWidth = canvas.width - 40;
+          const subtitleWords = escapedSubtitle.split(' ');
+          const lines: string[] = [];
+          let currentLine = '';
+          
+          for (const word of subtitleWords) {
+            const testLine = currentLine ? `${currentLine} ${word}` : word;
+            const metrics = ctx.measureText(testLine);
+            if (metrics.width > maxWidth && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+          if (currentLine) lines.push(currentLine);
+          
+          // Draw subtitle lines at bottom
+          const subtitleY = canvas.height - 60;
+          const lineHeight = 25;
+          const totalHeight = lines.length * lineHeight;
+          
+          lines.forEach((line, lineIndex) => {
+            const yPos = subtitleY - totalHeight / 2 + lineIndex * lineHeight;
+            const subMetrics = ctx.measureText(line);
+            
+            // Black background for subtitle
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(
+              canvas.width / 2 - subMetrics.width / 2 - 15,
+              yPos - 12,
+              subMetrics.width + 30,
+              24
+            );
+            
+            // White subtitle text
+            ctx.fillStyle = 'white';
+            ctx.fillText(line, canvas.width / 2, yPos);
+          });
+        }
         
         // Convert canvas to blob with lower quality to save memory
         const blob = await new Promise<Blob>((resolve) => {
@@ -653,10 +711,6 @@ export default function Home() {
                           ))}
                         </div>
                       )}
-                      
-                      <p className="text-black text-xs mt-3 font-bebas tracking-wider">
-                        💡 TIP: IMAGES ONLY = AI GENERATES RAGEBAIT ABOUT THEM | IMAGES + PROMPT = CUSTOM SCRIPT WITH YOUR IMAGES
-                      </p>
                     </div>
                   )}
                 </div>
@@ -696,11 +750,24 @@ export default function Home() {
                           <option value="dorothy">BRITISH KAREN</option>
                         </optgroup>
                       </select>
-                      <p className="text-black text-xs mt-3 font-bebas tracking-wider">
-                        💡 TIP: UNHINGED & CONDESCENDING GET THE MOST ENGAGEMENT
-                      </p>
                     </div>
                   )}
+                </div>
+
+                {/* Subtitle Checkbox */}
+                <div className="border-4 border-black p-4 bg-black">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-white font-black text-xl uppercase font-bebas tracking-wider">
+                      📝 ADD SUBTITLES
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={enableSubtitles}
+                      onChange={(e) => setEnableSubtitles(e.target.checked)}
+                      className="w-6 h-6 border-2 border-white bg-white cursor-pointer accent-white"
+                      disabled={loading}
+                    />
+                  </label>
                 </div>
 
                 <button
