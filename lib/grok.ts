@@ -15,14 +15,39 @@ export interface VideoScript {
 
 /**
  * Generate video script and scene descriptions using Grok LLM
+ * Can optionally analyze images to generate ragebait content
  */
-export async function generateScript(prompt: string): Promise<VideoScript> {
+export async function generateScript(prompt: string, images?: string[]): Promise<VideoScript> {
   const apiKey = process.env.GROK_API_KEY;
   if (!apiKey) {
     throw new Error('GROK_API_KEY is not configured');
   }
 
-  const systemPrompt = `You are a ragebait content generator. Given a prompt, create a provocative 20-second video script with 2-3 scenes.
+  // Build system prompt based on whether images are provided
+  const hasImages = images && images.length > 0;
+  const imageCount = images?.length || 0;
+  
+  const systemPrompt = hasImages
+    ? `You are a ragebait content generator. Given ${imageCount} image${imageCount > 1 ? 's' : ''}, analyze what you see and create a provocative 20-second video script about it with ${imageCount} scenes (one per image).
+
+Return ONLY valid JSON in this exact format (no markdown, no extra text):
+{
+  "script": "The full spoken ragebait script about the image${imageCount > 1 ? 's' : ''} (provocative, attention-grabbing, under 50 words)",
+  "scenes": [
+    {"duration": ${imageCount === 1 ? 20 : imageCount === 2 ? 10 : 7}, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}${imageCount > 1 ? `,
+    {"duration": ${imageCount === 2 ? 10 : imageCount === 3 ? 7 : 6}, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}` : ''}${imageCount === 3 ? `,
+    {"duration": 6, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}` : ''}
+  ]
+}
+
+Rules:
+- Total duration must be exactly 20 seconds
+- ${imageCount} scene${imageCount > 1 ? 's' : ''} (one per image)
+- Script should be provocative ragebait about what you see in the image${imageCount > 1 ? 's' : ''}
+- Keywords should describe what's in each image
+- Captions should be short (3-7 words max)
+- Make it controversial and attention-grabbing`
+    : `You are a ragebait content generator. Given a prompt, create a provocative 20-second video script with 2-3 scenes.
 
 Return ONLY valid JSON in this exact format (no markdown, no extra text):
 {
@@ -42,14 +67,36 @@ Rules:
 - Captions should be short (3-7 words max)`;
 
   try {
+    // Build messages with images if provided
+    const messages: Array<{role: string; content: any}> = [
+      { role: 'system', content: systemPrompt }
+    ];
+    
+    if (hasImages) {
+      // Grok Vision supports images
+      const imageContents = images!.map(base64 => ({
+        type: 'image_url',
+        image_url: {
+          url: `data:image/jpeg;base64,${base64}`
+        }
+      }));
+      
+      messages.push({
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt || 'Create provocative ragebait content about this image' },
+          ...imageContents
+        ]
+      });
+    } else {
+      messages.push({ role: 'user', content: prompt });
+    }
+
     const response = await axios.post(
       `${GROK_API_BASE}/chat/completions`,
       {
-        model: 'grok-4-1-fast-non-reasoning',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
-        ],
+        model: hasImages ? 'grok-2-vision-1212' : 'grok-beta',
+        messages,
         temperature: 0.9,
       },
       {

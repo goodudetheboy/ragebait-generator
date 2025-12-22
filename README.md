@@ -5,7 +5,9 @@ An AI-powered web app that generates provocative 20-second vertical videos (9:16
 ## Features
 
 - 🤖 **Grok AI Integration**: Uses Grok LLM for script generation
+- 👁️ **Grok Vision**: Analyzes uploaded images to generate ragebait content
 - 🎤 **ElevenLabs TTS**: Natural, expressive voices (including annoying options!)
+- 📸 **Image Upload**: Upload your own images OR use Pexels search
 - 🖼️ **Dynamic Image Search**: Pulls relevant images from Pexels
 - 🎥 **Automated Video Creation**: FFmpeg-powered video composition with captions
 - 📱 **Phone-Optimized**: 1080x1920 vertical format perfect for TikTok/Reels/Shorts
@@ -81,11 +83,20 @@ Open [http://localhost:3000](http://localhost:3000)
 ## Usage
 
 1. Enter your password
-2. Type a ragebait prompt (e.g., "Why your phone battery dies at 20%")
+2. **Choose your content method:**
+   - **Text Prompt Only**: Type your ragebait idea (e.g., "Why your phone battery dies at 20%")
+   - **Images Only**: Upload 1-3 images and AI will generate ragebait about them
+   - **Both**: Upload images AND add a prompt to use your images with custom script
 3. **Select a voice personality** from the dropdown (default: UNHINGED & EMOTIONAL)
 4. Click "Generate Ragebait Video"
 5. Wait 2-3 minutes for AI generation + video rendering
 6. Download or share your video!
+
+### Image Upload Tips
+- Upload 1-3 images (max 5MB each)
+- AI analyzes images using Grok Vision to create ragebait
+- Works great for: screenshots, memes, controversial photos
+- Combine with prompt for more control
 
 ## Deployment to Vercel
 
@@ -130,8 +141,13 @@ ragebait-generator/
 
 ## How It Works
 
-1. **Script Generation**: Grok LLM generates provocative script + scene descriptions
-2. **Image Search**: For each scene, searches Pexels for relevant images
+1. **Script Generation**: 
+   - Text prompt: Grok LLM generates provocative script
+   - Image upload: Grok Vision analyzes images and creates ragebait script
+   - Both: Combines your prompt with image analysis
+2. **Image Acquisition**: 
+   - Uses uploaded images if provided
+   - Otherwise searches Pexels for relevant images
 3. **Image Processing**: Resizes images to 9:16, adds text captions with FFmpeg
 4. **TTS Generation**: ElevenLabs generates natural, expressive speech audio
 5. **Video Assembly**: FFmpeg combines images + audio into final MP4

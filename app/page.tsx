@@ -15,6 +15,8 @@ export default function Home() {
  
   const [prompt, setPrompt] = useState('');
   const [selectedVoice, setSelectedVoice] = useState('elli'); // Default voice
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]); // Base64 images
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]); // For preview
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -150,7 +152,12 @@ export default function Home() {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: storedPassword, prompt, voice: selectedVoice }),
+        body: JSON.stringify({ 
+          password: storedPassword, 
+          prompt, 
+          voice: selectedVoice,
+          images: uploadedImages.length > 0 ? uploadedImages : undefined 
+        }),
       });
 
       const data = await response.json();
@@ -329,11 +336,68 @@ export default function Home() {
       .toUpperCase();
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const imageFiles = Array.from(files).slice(0, 3); // Max 3 images
+    const base64Images: string[] = [];
+    const previewUrls: string[] = [];
+
+    for (const file of imageFiles) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('ONLY IMAGE FILES ALLOWED');
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('IMAGES MUST BE UNDER 5MB');
+        return;
+      }
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      previewUrls.push(previewUrl);
+
+      // Convert to base64
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix to get just base64
+          const base64Data = result.split(',')[1];
+          resolve(base64Data);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      base64Images.push(base64);
+    }
+
+    setUploadedImages(base64Images);
+    setImagePreviewUrls(previewUrls);
+    setError('');
+  };
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviewUrls(prev => {
+      // Revoke object URL to prevent memory leaks
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('ragebait_password');
     setIsAuthenticated(false);
     setPasswordInput('');
     setPrompt('');
+    setUploadedImages([]);
+    setImagePreviewUrls([]);
     setVideoUrl('');
     setVideoData(null);
     setError('');
@@ -534,6 +598,54 @@ export default function Home() {
                     placeholder="WHY YOUR PHONE BATTERY DIES AT 20%..."
                     disabled={loading}
                   />
+                </div>
+
+                <div>
+                  <label htmlFor="images" className="block text-black font-black mb-3 text-xl uppercase font-bebas tracking-wider">
+                    📸 UPLOAD IMAGES (OPTIONAL):
+                  </label>
+                  <input
+                    type="file"
+                    id="images"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    disabled={loading}
+                  />
+                  <label
+                    htmlFor="images"
+                    className="block w-full px-4 py-3 bg-white border-4 border-black text-black text-center font-bold cursor-pointer hover:bg-black hover:text-white transition-all font-bebas tracking-wider"
+                  >
+                    {uploadedImages.length > 0 
+                      ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} UPLOADED` 
+                      : '📁 CLICK TO UPLOAD (MAX 3)'}
+                  </label>
+                  
+                  {imagePreviewUrls.length > 0 && (
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      {imagePreviewUrls.map((url, index) => (
+                        <div key={index} className="relative border-4 border-black">
+                          <img 
+                            src={url} 
+                            alt={`Upload ${index + 1}`}
+                            className="w-full h-24 object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-0 right-0 bg-black text-white px-2 py-1 text-xs font-bold hover:bg-red-600 font-bebas"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  <p className="text-black text-xs mt-2 font-bebas tracking-wider">
+                    💡 TIP: IMAGES ONLY = AI GENERATES RAGEBAIT ABOUT THEM | IMAGES + PROMPT = CUSTOM SCRIPT WITH YOUR IMAGES
+                  </p>
                 </div>
 
                 <div>

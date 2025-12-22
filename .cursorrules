@@ -3,8 +3,9 @@
 ## Project Context
 This is a Next.js application that generates ragebait videos using:
 - Grok AI (LLM for script generation)
-- ElevenLabs (TTS voice generation)
-- Pexels (images)
+- Grok Vision (image analysis for uploaded images)
+- ElevenLabs (TTS voice generation with personality voices)
+- Pexels (images) OR user-uploaded images
 - FFmpeg (video composition)
 
 ## Key Files
@@ -33,10 +34,17 @@ This is a Next.js application that generates ragebait videos using:
 - ADMIN_PASSWORD - Password for authentication
 
 ## Common Tasks
-### Add new TTS voice
-Edit `app/api/generate/route.ts` and change voice parameter in `generateSpeech()`
-Available voices: rachel, adam, bella, antoni, elli, josh, dorothy, charlotte
-Or use custom voice ID from ElevenLabs Voice Library
+### Add new TTS voice personality
+Edit `app/page.tsx` voice selector dropdown
+Available: UNHINGED & EMOTIONAL, CONDESCENDING & SEDUCTIVE, ALPHA MALE ENERGY, 
+VALLEY GIRL ENERGY, ASMR WHISPER CREEP, SMUG KNOW-IT-ALL, 
+DEEP VOICE MANSPLAINER, BRITISH KAREN
+
+### Use uploaded images
+Users can upload 1-3 images which are:
+- Analyzed by Grok Vision to generate ragebait
+- Used in the video instead of Pexels search
+- Supports images only, prompt only, or both
 
 ### Change video duration
 Edit `lib/grok.ts` system prompt

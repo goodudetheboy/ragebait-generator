@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     // Password verification
-    const { password, prompt, voice } = await req.json();
+    const { password, prompt, voice, images } = await req.json();
     
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json(
@@ -17,40 +17,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!prompt || typeof prompt !== 'string') {
+    // Validate that we have either prompt or images
+    if ((!prompt || typeof prompt !== 'string') && (!images || !Array.isArray(images) || images.length === 0)) {
       return NextResponse.json(
-        { error: 'Prompt is required' },
+        { error: 'Prompt or images required' },
         { status: 400 }
       );
     }
 
     // Validate voice if provided (optional, defaults to elli)
     const selectedVoice = voice || 'elli';
+    
+    const hasImages = images && Array.isArray(images) && images.length > 0;
+    const hasPrompt = prompt && typeof prompt === 'string' && prompt.trim().length > 0;
 
-    console.log('🎬 Starting video generation for prompt:', prompt);
+    console.log('🎬 Starting video generation');
+    console.log('  - Prompt:', hasPrompt ? prompt : 'None (using images only)');
+    console.log('  - Images:', hasImages ? `${images.length} uploaded` : 'None (using Pexels)');
 
-    // Step 1: Generate script using Grok
+    // Step 1: Generate script using Grok (with vision if images provided)
     console.log('📝 Generating script...');
-    const videoScript = await generateScript(prompt);
+    const videoScript = await generateScript(
+      prompt || 'Create provocative ragebait content about this',
+      hasImages ? images : undefined
+    );
     console.log('✅ Script generated:', videoScript);
 
-    // Step 2: Search for images (just get URLs, don't download)
-    console.log('🖼️  Searching for images...');
+    // Step 2: Get images (either from upload or Pexels search)
+    console.log('🖼️  Getting images...');
     const imageUrls: string[] = [];
     
-    for (let i = 0; i < videoScript.scenes.length; i++) {
-      const scene = videoScript.scenes[i];
-      console.log(`  Searching for: ${scene.keywords}`);
-      
-      const imageResult = await searchImage(scene.keywords);
-      
-      if (!imageResult) {
-        console.warn(`  No image found for: ${scene.keywords}, using placeholder`);
-        throw new Error(`No image found for scene: ${scene.keywords}`);
+    if (hasImages) {
+      // Use uploaded images (convert base64 to data URLs)
+      console.log('  Using uploaded images');
+      for (let i = 0; i < Math.min(images.length, videoScript.scenes.length); i++) {
+        const dataUrl = `data:image/jpeg;base64,${images[i]}`;
+        imageUrls.push(dataUrl);
+        console.log(`  ✅ Using uploaded image ${i + 1}`);
       }
+    } else {
+      // Search Pexels for images
+      console.log('  Searching Pexels...');
+      for (let i = 0; i < videoScript.scenes.length; i++) {
+        const scene = videoScript.scenes[i];
+        console.log(`  Searching for: ${scene.keywords}`);
+        
+        const imageResult = await searchImage(scene.keywords);
+        
+        if (!imageResult) {
+          console.warn(`  No image found for: ${scene.keywords}, using placeholder`);
+          throw new Error(`No image found for scene: ${scene.keywords}`);
+        }
 
-      imageUrls.push(imageResult.url);
-      console.log(`  ✅ Found image ${i + 1}`);
+        imageUrls.push(imageResult.url);
+        console.log(`  ✅ Found image ${i + 1}`);
+      }
     }
 
     // Step 3: Generate speech using ElevenLabs TTS
