@@ -1,0 +1,30 @@
+import type { Metadata } from "next";
+import { Bebas_Neue } from "next/font/google";
+import "./globals.css";
+
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-bebas",
+});
+
+export const metadata: Metadata = {
+  title: "RAGEBAIT GENERATOR - AI VIDEO CREATION",
+  description: "GENERATE PROVOCATIVE VIRAL VIDEOS FROM TEXT PROMPTS USING GROK AI",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en">
+      <body
+        className={`${bebasNeue.variable} antialiased`}
+      >
+        {children}
+      </body>
+    </html>
+  );
+}

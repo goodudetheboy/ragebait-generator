@@ -1,0 +1,45 @@
+# Ragebait Generator - Cursor Rules
+
+## Project Context
+This is a Next.js application that generates ragebait videos using:
+- Grok AI (LLM + Voice)
+- Pexels (images)
+- FFmpeg (video composition)
+
+## Key Files
+- `app/api/generate/route.ts` - Main video generation endpoint
+- `lib/grok.ts` - Grok AI integration
+- `lib/pexels.ts` - Image search
+- `lib/video.ts` - FFmpeg video compositor
+- `app/page.tsx` - Frontend UI
+
+## Development Guidelines
+1. Always validate environment variables before using APIs
+2. Clean up temp files after video generation
+3. Use TypeScript strict mode
+4. Follow Next.js 15 App Router conventions
+5. Videos are 9:16 vertical format (1080x1920)
+6. Target 20-second duration
+7. Password protection in backend, not client-side
+
+## API Endpoints
+- POST `/api/generate` - Generate video (requires password in body)
+
+## Environment Variables
+- GROK_API_KEY - xAI Grok API key
+- PEXELS_API_KEY - Pexels image API key
+- ADMIN_PASSWORD - Password for authentication
+
+## Common Tasks
+### Add new TTS voice
+Edit `app/api/generate/route.ts` and change voice parameter in `generateSpeech()`
+
+### Change video duration
+Edit `lib/grok.ts` system prompt
+
+### Modify caption style
+Edit `lib/video.ts` drawtext filter parameters
+
+### Add fallback image
+Add placeholder image handling in `lib/pexels.ts`
+
