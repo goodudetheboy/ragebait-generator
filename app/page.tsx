@@ -224,7 +224,7 @@ export default function Home() {
         const textWidth = textMetrics.width;
         const textHeight = 40; // Approximate height (scaled down)
         const textX = canvas.width / 2;
-        const textY = canvas.height - 75; // Scaled down
+        const textY = canvas.height / 2; // Centered vertically
         
         // Draw black background box
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
