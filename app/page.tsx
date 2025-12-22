@@ -490,6 +490,40 @@ export default function Home() {
     setError('');
   };
 
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = videoData?.script || 'Check out this ragebait video!';
+    
+    // Native Web Share API
+    if (typeof navigator !== 'undefined' && 'share' in navigator) {
+      try {
+        // Try to share the actual video file
+        const response = await fetch(videoUrl);
+        const blob = await response.blob();
+        const file = new File([blob], `ragebait_${Date.now()}.mp4`, { type: 'video/mp4' });
+        
+        await navigator.share({
+          title: 'Ragebait Video',
+          text: shareText,
+          files: [file]
+        });
+      } catch {
+        // Fallback to sharing just the URL
+        try {
+          await navigator.share({
+            title: 'Ragebait Video',
+            text: shareText,
+            url: shareUrl
+          });
+        } catch {
+          alert('❌ SHARING NOT SUPPORTED ON THIS DEVICE');
+        }
+      }
+    } else {
+      alert('❌ SHARING NOT SUPPORTED ON THIS BROWSER');
+    }
+  };
+
   // BROWSER NOT SUPPORTED SCREEN
   if (!hasSharedArrayBuffer) {
     return (
@@ -864,6 +898,88 @@ export default function Home() {
                 >
                   💾 DOWNLOAD VIDEO
                 </a>
+
+                {/* Share Section */}
+                <div className="border-4 border-black p-6 bg-white">
+                  <h3 className="text-black font-black mb-4 text-xl uppercase font-bebas tracking-wider text-center">
+                    📤 SHARE TO...
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      💼 COWORKER
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      💍 WIFE
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      👩 MOTHER
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      👨 FATHER
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      🏚️ A HOMELESS
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      🍺 FRAT BRO
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      👴 BOOMER
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      😤 EX
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      🧓 GRANDMA
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      👮 LANDLORD
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      🤡 YOURSELF
+                    </button>
+                    <button
+                      onClick={() => handleShare()}
+                      className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
+                    >
+                      👨‍⚖️ KAREN
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             </div>
