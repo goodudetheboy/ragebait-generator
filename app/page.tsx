@@ -190,6 +190,11 @@ export default function Home() {
         }),
       });
 
+      // Check for 413 error (Payload Too Large)
+      if (response.status === 413) {
+        throw new Error('❌ IMAGES TOO BIG');
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -425,6 +430,54 @@ export default function Home() {
       .toUpperCase();
   };
 
+  // Compress image to reduce upload size
+  const compressImage = async (file: File): Promise<{ base64: string; previewUrl: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Create canvas for compression
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Canvas not supported'));
+            return;
+          }
+
+          // Resize to max 1080px width while maintaining aspect ratio
+          const maxWidth = 1080;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          // Draw and compress
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to JPEG with 70% quality
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          const base64Data = compressedDataUrl.split(',')[1];
+          const previewUrl = compressedDataUrl;
+
+          console.log(`Image compressed: ${Math.round(file.size / 1024)}KB → ${Math.round(base64Data.length * 0.75 / 1024)}KB`);
+          
+          resolve({ base64: base64Data, previewUrl });
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -440,30 +493,16 @@ export default function Home() {
         return;
       }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setError('IMAGES MUST BE UNDER 5MB');
+      // Compress image
+      try {
+        const compressed = await compressImage(file);
+        base64Images.push(compressed.base64);
+        previewUrls.push(compressed.previewUrl);
+      } catch (error) {
+        console.error('Compression error:', error);
+        setError('FAILED TO PROCESS IMAGE');
         return;
       }
-
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      previewUrls.push(previewUrl);
-
-      // Convert to base64
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data URL prefix to get just base64
-          const base64Data = result.split(',')[1];
-          resolve(base64Data);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      base64Images.push(base64);
     }
 
     setUploadedImages(base64Images);
@@ -493,38 +532,20 @@ export default function Home() {
       input.accept = 'image/*';
       input.capture = 'environment'; // Use back camera by default
       
-      input.onchange = (e: Event) => {
+      input.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement;
         if (target.files && target.files[0]) {
           const file = target.files[0];
           
-          // Create preview URL
-          const previewUrl = URL.createObjectURL(file);
-          
-          // Convert to base64
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            const result = event.target?.result as string;
-            // Remove data URL prefix to get just base64 (same as normal upload)
-            const base64Data = result.split(',')[1];
-            
-            // Validate base64
-            if (!base64Data || base64Data.length === 0) {
-              console.error('Empty base64 data from camera');
-              alert('❌ FAILED TO PROCESS IMAGE');
-              return;
-            }
-            
-            console.log('Camera image captured:', {
-              size: base64Data.length,
-              firstChars: base64Data.substring(0, 20)
-            });
-            
-            setUploadedImages(prev => [...prev, base64Data]);
-            setImagePreviewUrls(prev => [...prev, previewUrl]);
-          };
-          
-          reader.readAsDataURL(file);
+          // Compress image before uploading
+          try {
+            const compressed = await compressImage(file);
+            setUploadedImages(prev => [...prev, compressed.base64]);
+            setImagePreviewUrls(prev => [...prev, compressed.previewUrl]);
+          } catch (error) {
+            console.error('Camera compression error:', error);
+            alert('❌ FAILED TO PROCESS IMAGE');
+          }
         }
       };
       
