@@ -482,6 +482,8 @@ export default function Home() {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    setError(''); // Clear previous errors
+    
     const imageFiles = Array.from(files).slice(0, 3); // Max 3 images
     const base64Images: string[] = [];
     const previewUrls: string[] = [];
@@ -521,9 +523,11 @@ export default function Home() {
 
   const handleTakePhoto = async () => {
     if (uploadedImages.length >= 3) {
-      alert('❌ MAX 3 IMAGES');
+      setError('MAX 3 IMAGES');
       return;
     }
+    
+    setError(''); // Clear previous errors
 
     try {
       // Create a file input that only accepts camera
@@ -542,9 +546,10 @@ export default function Home() {
             const compressed = await compressImage(file);
             setUploadedImages(prev => [...prev, compressed.base64]);
             setImagePreviewUrls(prev => [...prev, compressed.previewUrl]);
+            setError(''); // Clear any previous errors
           } catch (error) {
             console.error('Camera compression error:', error);
-            alert('❌ FAILED TO PROCESS IMAGE');
+            setError('FAILED TO PROCESS IMAGE');
           }
         }
       };
@@ -552,7 +557,7 @@ export default function Home() {
       input.click();
     } catch (error) {
       console.error('Camera error:', error);
-      alert('❌ CAMERA ACCESS FAILED');
+      setError('CAMERA ACCESS FAILED');
     }
   };
 
@@ -856,6 +861,14 @@ export default function Home() {
                           ? `${uploadedImages.length} IMAGE${uploadedImages.length > 1 ? 'S' : ''} ADDED` 
                           : 'MAX 3 IMAGES'}
                       </div>
+                      
+                      {error && (
+                        <div className="mb-3 p-3 bg-red-600 text-white border-4 border-black">
+                          <p className="font-black text-sm uppercase text-center font-bebas tracking-wider">
+                            ❌ {error}
+                          </p>
+                        </div>
+                      )}
                       
                       {imagePreviewUrls.length > 0 && (
                         <div className="mt-3 grid grid-cols-3 gap-2">
