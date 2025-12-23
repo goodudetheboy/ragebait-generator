@@ -352,16 +352,17 @@ export default function Home() {
       const audioData = Uint8Array.from(atob(data.audioBase64), c => c.charCodeAt(0));
       await ffmpeg.writeFile('input_audio.mp3', audioData);
       
-      // Re-encode audio to lower bitrate to save memory
-      console.log('Compressing audio...');
+      // Re-encode audio to AAC for iOS Safari compatibility
+      console.log('Compressing audio to AAC...');
       await ffmpeg.exec([
         '-i', 'input_audio.mp3',
+        '-c:a', 'aac',           // Use AAC codec (iOS compatible)
         '-b:a', '64k',
         '-ar', '22050',
-        'audio.mp3'
+        'audio.aac'
       ]);
       await ffmpeg.deleteFile('input_audio.mp3');
-      console.log('✓ Audio compressed');
+      console.log('✓ Audio compressed to AAC');
 
       // Step 6: Create final video with lower memory settings
       setProgress('CREATING VIDEO...');
@@ -370,11 +371,12 @@ export default function Home() {
         '-f', 'concat',
         '-safe', '0',
         '-i', 'concat.txt',
-        '-i', 'audio.mp3',
+        '-i', 'audio.aac',
         '-c:v', 'libx264',
         '-preset', 'ultrafast',
         '-crf', '28',
-        '-c:a', 'copy',    // Don't re-encode audio
+        '-c:a', 'aac',    // AAC codec for iOS Safari compatibility
+        '-b:a', '64k',    // Maintain bitrate
         '-shortest',
         '-pix_fmt', 'yuv420p',
         'output.mp4'
@@ -392,7 +394,7 @@ export default function Home() {
 
       // Cleanup FFmpeg virtual filesystem
       try {
-        await ffmpeg.deleteFile('audio.mp3');
+        await ffmpeg.deleteFile('audio.aac');
         await ffmpeg.deleteFile('concat.txt');
         await ffmpeg.deleteFile('output.mp4');
         for (let i = 0; i < processedImages.length; i++) {
