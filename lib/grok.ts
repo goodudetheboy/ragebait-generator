@@ -23,48 +23,32 @@ export async function generateScript(prompt: string, images?: string[]): Promise
     throw new Error('GROK_API_KEY is not configured');
   }
 
-  // Build system prompt based on whether images are provided
   const hasImages = images && images.length > 0;
   const imageCount = images?.length || 0;
   
-  const systemPrompt = hasImages
-    ? `You are a ragebait content generator. Given ${imageCount} image${imageCount > 1 ? 's' : ''}, analyze what you see and create a provocative 20-second video script about it with ${imageCount} scenes (one per image).
-
-Return ONLY valid JSON in this exact format (no markdown, no extra text):
-{
-  "script": "The full spoken ragebait script about the image${imageCount > 1 ? 's' : ''} (provocative, attention-grabbing, under 50 words)",
-  "scenes": [
-    {"duration": ${imageCount === 1 ? 20 : imageCount === 2 ? 10 : 7}, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}${imageCount > 1 ? `,
-    {"duration": ${imageCount === 2 ? 10 : imageCount === 3 ? 7 : 6}, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}` : ''}${imageCount === 3 ? `,
-    {"duration": 6, "keywords": "describe the image", "caption": "TEXT ON SCREEN"}` : ''}
-  ]
-}
-
-Rules:
-- Total duration must be exactly 20 seconds
-- ${imageCount} scene${imageCount > 1 ? 's' : ''} (one per image)
-- Script should be provocative ragebait about what you see in the image${imageCount > 1 ? 's' : ''}
-- Keywords should describe what's in each image
-- Captions should be short (3-7 words max)
-- Make it controversial and attention-grabbing`
-    : `You are a ragebait content generator. Given a prompt, create a provocative 20-second video script with 2-3 scenes.
+  const systemPrompt = `You are a ragebait content generator. ${
+    hasImages 
+      ? `Given ${imageCount} image${imageCount > 1 ? 's' : ''}, analyze what you see and create a provocative 20-second video script about it with ${imageCount} scenes (one per image).`
+      : `Given a prompt, create a provocative 20-second video script with 2-3 scenes.`
+  }
 
 Return ONLY valid JSON in this exact format (no markdown, no extra text):
 {
   "script": "The full spoken script (provocative, attention-grabbing, under 50 words)",
   "scenes": [
-    {"duration": 7, "keywords": "search keywords for image", "caption": "TEXT ON SCREEN"},
-    {"duration": 7, "keywords": "search keywords for image", "caption": "TEXT ON SCREEN"},
-    {"duration": 6, "keywords": "search keywords for image", "caption": "TEXT ON SCREEN"}
+    {"duration": 7, "keywords": "${hasImages ? 'describe the image' : 'search keywords for image'}", "caption": "TEXT ON SCREEN"},
+    {"duration": 7, "keywords": "${hasImages ? 'describe the image' : 'search keywords for image'}", "caption": "TEXT ON SCREEN"},
+    {"duration": 6, "keywords": "${hasImages ? 'describe the image' : 'search keywords for image'}", "caption": "TEXT ON SCREEN"}
   ]
 }
 
 Rules:
 - Total duration must be exactly 20 seconds
-- 2-3 scenes only
-- Script should be provocative and attention-grabbing
-- Keywords should be simple image search terms
-- Captions should be short (3-7 words max)`;
+- ${hasImages ? `${imageCount} scene${imageCount > 1 ? 's' : ''} (one per image)` : `2-3 scenes only`}
+- Script should be provocative and attention-grabbing and rage-inducing
+- Keywords should ${hasImages ? 'describe what\'s in each image' : 'be simple image search terms'}
+- Captions should be short (3-7 words max)
+- Make it controversial and attention-grabbing`;
 
   try {
     // Build messages with images if provided
