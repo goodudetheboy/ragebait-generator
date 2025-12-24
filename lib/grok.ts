@@ -192,11 +192,16 @@ export async function generateSpeech(
     });
 
     // Convert ReadableStream to Buffer
-    const chunks: Buffer[] = [];
-    for await (const chunk of audio) {
-      chunks.push(Buffer.from(chunk));
+    const reader = audio.getReader();
+    const chunks: Uint8Array[] = [];
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
     }
-    return Buffer.concat(chunks);
+    
+    return Buffer.concat(chunks.map(chunk => Buffer.from(chunk)));
   } catch (error: any) {
     console.error('ElevenLabs TTS API error:', error.message);
     throw new Error(`Failed to generate speech: ${error.message}`);
