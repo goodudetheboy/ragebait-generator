@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { ElevenLabsClient } from '@elevenlabs/elevenlabs-js';
 
 const GROK_API_BASE = 'https://api.x.ai/v1';
 
@@ -174,30 +175,29 @@ export async function generateSpeech(
 
   try {
     // Using ElevenLabs TTS - Tuned for MAXIMUM RAGEBAIT
-    const response = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
-      {
-        text: text,
-        model_id: 'eleven_turbo_v2_5', // Fastest, most cost-effective model
-        voice_settings: {
-          stability: 0.35, // Lower = more expressive/unhinged
-          similarity_boost: 0.75, // Keep natural characteristics
-          style: 0.75, // Higher = more exaggerated/annoying
-          use_speaker_boost: true // Boost clarity for engagement
-        }
-      },
-      {
-        headers: {
-          'xi-api-key': apiKey,
-          'Content-Type': 'application/json',
-        },
-        responseType: 'arraybuffer',
-      }
-    );
+    const elevenlabs = new ElevenLabsClient({
+      apiKey: apiKey,
+    });
 
-    return Buffer.from(response.data);
+    const audio = await elevenlabs.textToSpeech.convert(voiceId, {
+      text: text,
+      model_id: 'eleven_turbo_v2_5', // Fastest, most cost-effective model
+      voice_settings: {
+        stability: 0.35, // Lower = more expressive/unhinged
+        similarity_boost: 0.75, // Keep natural characteristics
+        style: 0.75, // Higher = more exaggerated/annoying
+        use_speaker_boost: true // Boost clarity for engagement
+      }
+    });
+
+    // Convert ReadableStream to Buffer
+    const chunks: Buffer[] = [];
+    for await (const chunk of audio) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
   } catch (error: any) {
-    console.error('ElevenLabs TTS API error:', error.response?.data || error.message);
+    console.error('ElevenLabs TTS API error:', error.message);
     throw new Error(`Failed to generate speech: ${error.message}`);
   }
 }
