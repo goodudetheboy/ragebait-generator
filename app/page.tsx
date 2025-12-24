@@ -20,6 +20,8 @@ export default function Home() {
   const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
+  const [imageSource, setImageSource] = useState<'pexels' | 'serper'>('serper'); // Image source toggle (default: Serper)
+  const [serperEconomyMode, setSerperEconomyMode] = useState(true); // Economy mode for Serper (default on)
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -186,7 +188,9 @@ export default function Home() {
           password: storedPassword, 
           prompt, 
           voice: selectedVoice,
-          images: uploadedImages.length > 0 ? uploadedImages : undefined 
+          images: uploadedImages.length > 0 ? uploadedImages : undefined,
+          imageSource: uploadedImages.length > 0 ? undefined : imageSource, // Only send if not using uploaded images
+          serperEconomyMode: imageSource === 'serper' && uploadedImages.length === 0 ? serperEconomyMode : undefined
         }),
       });
 
@@ -198,7 +202,9 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'GENERATION FAILED');
+        // Show the actual error message from the backend
+        const errorMsg = data.error || 'GENERATION FAILED';
+        throw new Error(errorMsg);
       }
 
       setVideoData({ script: data.script, scenes: data.scenes });
@@ -411,7 +417,23 @@ export default function Home() {
 
     } catch (err) {
       console.error('Video generation error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'GENERATION FAILED';
+      
+      // Show descriptive error messages
+      let errorMsg = 'GENERATION FAILED';
+      
+      if (err instanceof Error) {
+        errorMsg = err.message;
+        
+        // Add user-friendly context for specific errors
+        if (errorMsg.includes('413') || errorMsg.includes('Payload Too Large')) {
+          errorMsg = 'IMAGES TOO BIG - Try smaller images or fewer images';
+        } else if (errorMsg.includes('NetworkError') || errorMsg.includes('Failed to fetch')) {
+          errorMsg = 'NETWORK ERROR - Check your connection';
+        } else if (errorMsg.includes('out of memory') || errorMsg.includes('memory')) {
+          errorMsg = 'OUT OF MEMORY - Images too large, try Pexels instead';
+        }
+      }
+      
       setError(errorMsg.toUpperCase());
     } finally {
       setLoading(false);
@@ -814,6 +836,64 @@ export default function Home() {
                     disabled={loading}
                   />
                 </div>
+
+                {/* Image Source Toggle (only show when no images uploaded) */}
+                {uploadedImages.length === 0 && (
+                  <div className="border-4 border-black p-4 bg-white space-y-3">
+                    <label className="block text-black font-black mb-3 text-lg uppercase font-bebas tracking-wider">
+                      🖼️ IMAGE SOURCE:
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setImageSource('pexels')}
+                        className={`py-3 px-4 font-black text-sm uppercase border-4 border-black transition-all font-bebas tracking-wider ${
+                          imageSource === 'pexels'
+                            ? 'bg-black text-white'
+                            : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                        disabled={loading}
+                      >
+                        PEXELS
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageSource('serper')}
+                        className={`py-3 px-4 font-black text-sm uppercase border-4 border-black transition-all font-bebas tracking-wider ${
+                          imageSource === 'serper'
+                            ? 'bg-black text-white'
+                            : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                        disabled={loading}
+                      >
+                        SERPER
+                      </button>
+                    </div>
+                    
+                    {/* Serper Economy Mode Toggle */}
+                    {imageSource === 'serper' && (
+                      <div className="border-4 border-black p-3 bg-black">
+                        <label className="flex items-center justify-between cursor-pointer">
+                          <span className="text-white font-black text-sm uppercase font-bebas tracking-wider">
+                            💰 ECONOMY MODE (1 API CALL)
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={serperEconomyMode}
+                            onChange={(e) => setSerperEconomyMode(e.target.checked)}
+                            className="w-5 h-5 border-2 border-white bg-white cursor-pointer accent-white"
+                            disabled={loading}
+                          />
+                        </label>
+                        <p className="text-white text-xs mt-2 font-bebas tracking-wide">
+                          {serperEconomyMode 
+                            ? 'USES 1 QUERY FOR ALL IMAGES (SAVES API CREDITS)'
+                            : 'USES SEPARATE QUERY PER IMAGE (BETTER RESULTS)'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Collapsible Image Upload Section */}
                 <div className="border-4 border-black">
