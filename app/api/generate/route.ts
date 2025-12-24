@@ -2,9 +2,48 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateScript, generateSpeech, ELEVENLABS_VOICES } from '@/lib/grok';
 import { searchImage as searchPexels } from '@/lib/pexels';
 import { searchImage as searchSerper } from '@/lib/serper';
+import sharp from 'sharp';
 
 export const maxDuration = 60; // Only need 60s for script + image search + TTS
 export const dynamic = 'force-dynamic';
+
+/**
+ * Download and compress an image from a URL
+ * This is needed for Serper images which can be huge (10MB+)
+ */
+async function downloadAndCompressImage(url: string): Promise<string> {
+  try {
+    console.log(`  Downloading image: ${url.substring(0, 100)}...`);
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download image: ${response.status}`);
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    console.log(`  Original size: ${Math.round(buffer.length / 1024)}KB`);
+    
+    // Resize and compress image
+    const compressed = await sharp(buffer)
+      .resize(1080, null, { // Max width 1080px, maintain aspect ratio
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 75 }) // Compress to JPEG with 75% quality
+      .toBuffer();
+    
+    console.log(`  Compressed size: ${Math.round(compressed.length / 1024)}KB`);
+    
+    // Convert to base64 data URL
+    const base64 = compressed.toString('base64');
+    return `data:image/jpeg;base64,${base64}`;
+  } catch (error) {
+    console.error(`  Failed to download/compress image:`, error);
+    throw error;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,7 +113,17 @@ export async function POST(req: NextRequest) {
           throw new Error(`No image found for scene: ${scene.keywords}`);
         }
 
-        imageUrls.push(imageResult.url);
+        // For Serper, download and compress the image first
+        // (Google images can be huge and cause memory issues in FFmpeg)
+        if (useSerper) {
+          console.log(`  Compressing Serper image ${i + 1}...`);
+          const compressedDataUrl = await downloadAndCompressImage(imageResult.url);
+          imageUrls.push(compressedDataUrl);
+        } else {
+          // Pexels images are already optimized
+          imageUrls.push(imageResult.url);
+        }
+        
         console.log(`  ✅ Found image ${i + 1}`);
       }
     }
