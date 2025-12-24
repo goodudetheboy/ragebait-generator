@@ -10,38 +10,69 @@ export const dynamic = 'force-dynamic';
 /**
  * Download and compress an image from a URL
  * This is needed for Serper images which can be huge (10MB+)
+ * Forces images to be under MAX_IMAGE_SIZE_KB to prevent FFmpeg crashes
  */
-async function downloadAndCompressImage(url: string): Promise<string> {
+async function downloadAndCompressImage(url: string, maxSizeKB: number = 500): Promise<string> {
   try {
     console.log(`  Downloading image: ${url.substring(0, 100)}...`);
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(10000) }); // 10s timeout
     
     if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.status}`);
+      throw new Error(`IMAGE DOWNLOAD FAILED (${response.status})`);
     }
     
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const originalSizeKB = Math.round(buffer.length / 1024);
     
-    console.log(`  Original size: ${Math.round(buffer.length / 1024)}KB`);
+    console.log(`  Original size: ${originalSizeKB}KB`);
     
-    // Resize and compress image
-    const compressed = await sharp(buffer)
-      .resize(1080, null, { // Max width 1080px, maintain aspect ratio
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .jpeg({ quality: 75 }) // Compress to JPEG with 75% quality
-      .toBuffer();
+    // Try different compression levels until under maxSizeKB
+    const compressionLevels = [
+      { width: 1080, quality: 75 },
+      { width: 800, quality: 70 },
+      { width: 600, quality: 65 },
+      { width: 540, quality: 60 },
+    ];
     
-    console.log(`  Compressed size: ${Math.round(compressed.length / 1024)}KB`);
+    let compressed: Buffer | null = null;
+    let compressedSizeKB = 0;
+    
+    for (const level of compressionLevels) {
+      compressed = await sharp(buffer)
+        .resize(level.width, null, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .jpeg({ quality: level.quality })
+        .toBuffer();
+      
+      compressedSizeKB = Math.round(compressed.length / 1024);
+      console.log(`  Compressed (${level.width}px, ${level.quality}%): ${compressedSizeKB}KB`);
+      
+      if (compressedSizeKB <= maxSizeKB) {
+        break;
+      }
+    }
+    
+    if (!compressed) {
+      throw new Error('IMAGE COMPRESSION FAILED');
+    }
+    
+    if (compressedSizeKB > maxSizeKB) {
+      console.warn(`  ⚠️ Image still ${compressedSizeKB}KB after compression (target: ${maxSizeKB}KB)`);
+      // Continue anyway with most compressed version
+    }
+    
+    console.log(`  ✅ Final size: ${compressedSizeKB}KB`);
     
     // Convert to base64 data URL
     const base64 = compressed.toString('base64');
     return `data:image/jpeg;base64,${base64}`;
   } catch (error) {
-    console.error(`  Failed to download/compress image:`, error);
-    throw error;
+    const errorMessage = error instanceof Error ? error.message : 'UNKNOWN ERROR';
+    console.error(`  ❌ Image processing failed:`, errorMessage);
+    throw new Error(`IMAGE PROCESSING FAILED: ${errorMessage}`);
   }
 }
 
@@ -117,14 +148,20 @@ export async function POST(req: NextRequest) {
         // (Google images can be huge and cause memory issues in FFmpeg)
         if (useSerper) {
           console.log(`  Compressing Serper image ${i + 1}...`);
-          const compressedDataUrl = await downloadAndCompressImage(imageResult.url);
-          imageUrls.push(compressedDataUrl);
+          try {
+            const compressedDataUrl = await downloadAndCompressImage(imageResult.url, 500); // Max 500KB per image
+            imageUrls.push(compressedDataUrl);
+            console.log(`  ✅ Image ${i + 1} compressed successfully`);
+          } catch (compressionError) {
+            const errMsg = compressionError instanceof Error ? compressionError.message : 'Unknown error';
+            console.error(`  ❌ Failed to compress image ${i + 1}:`, errMsg);
+            throw new Error(`Failed to process image ${i + 1}: ${errMsg}`);
+          }
         } else {
           // Pexels images are already optimized
           imageUrls.push(imageResult.url);
+          console.log(`  ✅ Image ${i + 1} found`);
         }
-        
-        console.log(`  ✅ Found image ${i + 1}`);
       }
     }
 
@@ -147,7 +184,30 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('❌ Video generation error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Failed to generate video';
+    
+    // Provide more descriptive error messages
+    let errorMessage = 'Failed to generate video';
+    
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      // Add context to common errors
+      if (errorMessage.includes('IMAGE')) {
+        // Already descriptive from our compression function
+      } else if (errorMessage.includes('fetch')) {
+        errorMessage = 'NETWORK ERROR - Failed to fetch resources';
+      } else if (errorMessage.includes('timeout')) {
+        errorMessage = 'TIMEOUT - Request took too long';
+      } else if (errorMessage.includes('No image found')) {
+        // Already descriptive
+      } else if (errorMessage.toLowerCase().includes('memory')) {
+        errorMessage = 'OUT OF MEMORY - Images too large';
+      } else if (!errorMessage.includes('FAILED')) {
+        // Generic error, make it uppercase for consistency
+        errorMessage = errorMessage.toUpperCase();
+      }
+    }
+    
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }

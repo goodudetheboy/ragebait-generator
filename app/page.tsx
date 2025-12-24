@@ -200,7 +200,9 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'GENERATION FAILED');
+        // Show the actual error message from the backend
+        const errorMsg = data.error || 'GENERATION FAILED';
+        throw new Error(errorMsg);
       }
 
       setVideoData({ script: data.script, scenes: data.scenes });
@@ -413,7 +415,23 @@ export default function Home() {
 
     } catch (err) {
       console.error('Video generation error:', err);
-      const errorMsg = err instanceof Error ? err.message : 'GENERATION FAILED';
+      
+      // Show descriptive error messages
+      let errorMsg = 'GENERATION FAILED';
+      
+      if (err instanceof Error) {
+        errorMsg = err.message;
+        
+        // Add user-friendly context for specific errors
+        if (errorMsg.includes('413') || errorMsg.includes('Payload Too Large')) {
+          errorMsg = 'IMAGES TOO BIG - Try smaller images or fewer images';
+        } else if (errorMsg.includes('NetworkError') || errorMsg.includes('Failed to fetch')) {
+          errorMsg = 'NETWORK ERROR - Check your connection';
+        } else if (errorMsg.includes('out of memory') || errorMsg.includes('memory')) {
+          errorMsg = 'OUT OF MEMORY - Images too large, try Pexels instead';
+        }
+      }
+      
       setError(errorMsg.toUpperCase());
     } finally {
       setLoading(false);
