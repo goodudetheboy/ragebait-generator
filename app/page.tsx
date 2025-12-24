@@ -20,7 +20,7 @@ export default function Home() {
   const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
-  const [imageSource, setImageSource] = useState<'pexels' | 'serper'>('pexels'); // Image source toggle
+  const [imageSource, setImageSource] = useState<'pexels' | 'serper'>('serper'); // Image source toggle (default: Serper)
   const [serperEconomyMode, setSerperEconomyMode] = useState(true); // Economy mode for Serper (default on)
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
