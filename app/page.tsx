@@ -20,7 +20,7 @@ export default function Home() {
   const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
-  const [imageSource, setImageSource] = useState<'pexels' | 'imgur'>('pexels'); // Image source toggle
+  const [imageSource, setImageSource] = useState<'pexels' | 'serper'>('pexels'); // Image source toggle
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -838,15 +838,15 @@ export default function Home() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setImageSource('imgur')}
+                        onClick={() => setImageSource('serper')}
                         className={`py-3 px-4 font-black text-sm uppercase border-4 border-black transition-all font-bebas tracking-wider ${
-                          imageSource === 'imgur'
+                          imageSource === 'serper'
                             ? 'bg-black text-white'
                             : 'bg-white text-black hover:bg-gray-100'
                         }`}
                         disabled={loading}
                       >
-                        IMGUR
+                        SERPER
                       </button>
                     </div>
                   </div>

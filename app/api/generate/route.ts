@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateScript, generateSpeech, ELEVENLABS_VOICES } from '@/lib/grok';
 import { searchImage as searchPexels } from '@/lib/pexels';
-import { searchImage as searchImgur } from '@/lib/imgur';
+import { searchImage as searchSerper } from '@/lib/serper';
 
 export const maxDuration = 60; // Only need 60s for script + image search + TTS
 export const dynamic = 'force-dynamic';
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     console.log('🎬 Starting video generation');
     console.log('  - Prompt:', hasPrompt ? prompt : 'None (using images only)');
-    console.log('  - Images:', hasImages ? `${images.length} uploaded` : `None (using ${imageSource || 'Pexels'})`);
+    console.log('  - Images:', hasImages ? `${images.length} uploaded` : `None (using ${imageSource === 'serper' ? 'Serper' : 'Pexels'})`);
 
     // Step 1: Generate script using Grok (with vision if images provided)
     console.log('📝 Generating script...');
@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
         console.log(`  ✅ Using uploaded image ${i + 1}`);
       }
     } else {
-      // Search for images using selected source (Pexels or Imgur)
-      const useImgur = imageSource === 'imgur';
-      const searchFunction = useImgur ? searchImgur : searchPexels;
-      const sourceName = useImgur ? 'Imgur' : 'Pexels';
+      // Search for images using selected source (Pexels or Serper)
+      const useSerper = imageSource === 'serper';
+      const searchFunction = useSerper ? searchSerper : searchPexels;
+      const sourceName = useSerper ? 'Serper' : 'Pexels';
       
       console.log(`  Searching ${sourceName}...`);
       for (let i = 0; i < videoScript.scenes.length; i++) {
