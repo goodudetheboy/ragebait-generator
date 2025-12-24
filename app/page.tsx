@@ -1028,73 +1028,73 @@ export default function Home() {
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      💼 COWORKER
+                      YOUR COWORKER
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      💍 WIFE
+                      YOUR WIFE
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      👩 MOTHER
+                      YOUR MOM
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      👨 FATHER
+                      YOUR DAD
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      🏚️ A HOMELESS
+                      A HOMELESS
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      🍺 FRAT BRO
+                      YOUR FRAT BRO
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      👴 BOOMER
+                      A BOOMER
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      😤 EX
+                      YOUR EX
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      🧓 GRANDMA
+                      YOUR GRANDMA
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      👮 LANDLORD
+                      YOUR LANDLORD
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      🤡 YOURSELF
+                      YOURSELF
                     </button>
                     <button
                       onClick={() => handleShare()}
                       className="py-3 px-4 bg-black text-white font-black text-sm uppercase border-4 border-black hover:bg-white hover:text-black transition-all font-bebas tracking-wider"
                     >
-                      👨‍⚖️ KAREN
+                      A KAREN
                     </button>
                   </div>
                 </div>
