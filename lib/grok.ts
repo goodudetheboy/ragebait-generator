@@ -45,7 +45,7 @@ Return ONLY valid JSON in this exact format (no markdown, no extra text):
 Rules:
 - Total duration must be exactly 20 seconds
 - ${hasImages ? `${imageCount} scene${imageCount > 1 ? 's' : ''} (one per image)` : `2-3 scenes only`}
-- Script should be provocative and attention-grabbing and rage-inducing
+- Script should be provocative and attention-grabbing and rage-inducing, but has to be humanlike speech and not AI generated vibes
 - Keywords should ${hasImages ? 'describe what\'s in each image' : 'be simple image search terms'}
 - Captions should be short (3-7 words max)
 - Make it controversial and attention-grabbing`;
