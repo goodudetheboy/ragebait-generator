@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateScript, generateSpeech, ELEVENLABS_VOICES } from '@/lib/grok';
-import { searchImage } from '@/lib/pexels';
+import { searchImage as searchPexels } from '@/lib/pexels';
+import { searchImage as searchImgur } from '@/lib/imgur';
 
 export const maxDuration = 60; // Only need 60s for script + image search + TTS
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     // Password verification
-    const { password, prompt, voice, images } = await req.json();
+    const { password, prompt, voice, images, imageSource } = await req.json();
     
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json(
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     console.log('🎬 Starting video generation');
     console.log('  - Prompt:', hasPrompt ? prompt : 'None (using images only)');
-    console.log('  - Images:', hasImages ? `${images.length} uploaded` : 'None (using Pexels)');
+    console.log('  - Images:', hasImages ? `${images.length} uploaded` : `None (using ${imageSource || 'Pexels'})`);
 
     // Step 1: Generate script using Grok (with vision if images provided)
     console.log('📝 Generating script...');
@@ -56,13 +57,17 @@ export async function POST(req: NextRequest) {
         console.log(`  ✅ Using uploaded image ${i + 1}`);
       }
     } else {
-      // Search Pexels for images
-      console.log('  Searching Pexels...');
+      // Search for images using selected source (Pexels or Imgur)
+      const useImgur = imageSource === 'imgur';
+      const searchFunction = useImgur ? searchImgur : searchPexels;
+      const sourceName = useImgur ? 'Imgur' : 'Pexels';
+      
+      console.log(`  Searching ${sourceName}...`);
       for (let i = 0; i < videoScript.scenes.length; i++) {
         const scene = videoScript.scenes[i];
         console.log(`  Searching for: ${scene.keywords}`);
         
-        const imageResult = await searchImage(scene.keywords);
+        const imageResult = await searchFunction(scene.keywords);
         
         if (!imageResult) {
           console.warn(`  No image found for: ${scene.keywords}, using placeholder`);

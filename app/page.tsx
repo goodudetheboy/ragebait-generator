@@ -20,6 +20,7 @@ export default function Home() {
   const [showImageUpload, setShowImageUpload] = useState(false); // Collapsible section
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
+  const [imageSource, setImageSource] = useState<'pexels' | 'imgur'>('pexels'); // Image source toggle
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -186,7 +187,8 @@ export default function Home() {
           password: storedPassword, 
           prompt, 
           voice: selectedVoice,
-          images: uploadedImages.length > 0 ? uploadedImages : undefined 
+          images: uploadedImages.length > 0 ? uploadedImages : undefined,
+          imageSource: uploadedImages.length > 0 ? undefined : imageSource // Only send if not using uploaded images
         }),
       });
 
@@ -814,6 +816,41 @@ export default function Home() {
                     disabled={loading}
                   />
                 </div>
+
+                {/* Image Source Toggle (only show when no images uploaded) */}
+                {uploadedImages.length === 0 && (
+                  <div className="border-4 border-black p-4 bg-white">
+                    <label className="block text-black font-black mb-3 text-lg uppercase font-bebas tracking-wider">
+                      🖼️ IMAGE SOURCE:
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setImageSource('pexels')}
+                        className={`py-3 px-4 font-black text-sm uppercase border-4 border-black transition-all font-bebas tracking-wider ${
+                          imageSource === 'pexels'
+                            ? 'bg-black text-white'
+                            : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                        disabled={loading}
+                      >
+                        PEXELS
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageSource('imgur')}
+                        className={`py-3 px-4 font-black text-sm uppercase border-4 border-black transition-all font-bebas tracking-wider ${
+                          imageSource === 'imgur'
+                            ? 'bg-black text-white'
+                            : 'bg-white text-black hover:bg-gray-100'
+                        }`}
+                        disabled={loading}
+                      >
+                        IMGUR
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Collapsible Image Upload Section */}
                 <div className="border-4 border-black">
