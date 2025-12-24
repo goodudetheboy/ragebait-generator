@@ -48,6 +48,7 @@ Rules:
 - ${hasImages ? `${imageCount} scene${imageCount > 1 ? 's' : ''} (one per image)` : `2-3 scenes only`}
 - Script should be provocative and attention-grabbing and rage-inducing, but has to be humanlike speech and not AI generated vibes
 - Keywords should ${hasImages ? 'describe what\'s in each image' : 'be simple image search terms'}
+- This is using ElevenLabs, so you can include audio tags wrapped in [] like [laughs], [shouting], anything you can think of to make it more engaging and rage-inducing
 - Captions should be short (3-7 words max)
 - Make it controversial and attention-grabbing`;
 
@@ -181,12 +182,12 @@ export async function generateSpeech(
 
     const audio = await elevenlabs.textToSpeech.convert(voiceId, {
       text: text,
-      model_id: 'eleven_turbo_v2_5', // Fastest, most cost-effective model
-      voice_settings: {
-        stability: 0.35, // Lower = more expressive/unhinged
-        similarity_boost: 0.75, // Keep natural characteristics
+      modelId: 'eleven_v3',
+      voiceSettings: {
+        stability: 0.00, // Lower = more expressive/unhinged
+        similarityBoost: 0.75, // Keep natural characteristics
         style: 0.75, // Higher = more exaggerated/annoying
-        use_speaker_boost: true // Boost clarity for engagement
+        useSpeakerBoost: true // Boost clarity for engagement
       }
     });
 
