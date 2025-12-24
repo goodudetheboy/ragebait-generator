@@ -5,6 +5,35 @@ export interface ImageResult {
 }
 
 /**
+ * Check if URL has a valid image format for Sharp/FFmpeg processing
+ * Sharp supports: JPEG, PNG, WebP, GIF, AVIF, TIFF
+ * We convert everything to JPEG for FFmpeg anyway
+ */
+function isValidImageFormat(url: string): boolean {
+  const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.tiff', '.tif'];
+  const urlLower = url.toLowerCase();
+  
+  // Exclude known problematic patterns
+  const badPatterns = [
+    'instagram.com/seo',
+    'lookaside.instagram',
+    '/crawler/',
+    '/widget/',
+  ];
+  
+  if (badPatterns.some(pattern => urlLower.includes(pattern))) {
+    return false;
+  }
+  
+  // Check if URL ends with valid extension or has it before query params
+  return validExtensions.some(ext => 
+    urlLower.endsWith(ext) || 
+    urlLower.includes(ext + '?') ||
+    urlLower.includes(ext + '&')
+  );
+}
+
+/**
  * Search for an image using Serper API (Google Image Search)
  */
 export async function searchImage(query: string): Promise<ImageResult | null> {
@@ -33,8 +62,18 @@ export async function searchImage(query: string): Promise<ImageResult | null> {
     const data = await response.json();
 
     if (data.images && data.images.length > 0) {
-      // Get the first image result
-      const image = data.images[0];
+      // Filter for valid image formats only
+      const validImages = data.images.filter((img: any) => 
+        img.imageUrl && isValidImageFormat(img.imageUrl)
+      );
+      
+      if (validImages.length === 0) {
+        console.warn('No valid image formats found in Serper results');
+        return null;
+      }
+      
+      // Get the first valid image result
+      const image = validImages[0];
       return {
         url: image.imageUrl,
         photographer: image.source || 'Google',
@@ -80,10 +119,20 @@ export async function searchMultipleImages(query: string, count: number = 3): Pr
     const data = await response.json();
 
     if (data.images && data.images.length > 0) {
-      // Return up to `count` images
+      // Filter for valid image formats only
+      const validImages = data.images.filter((img: any) => 
+        img.imageUrl && isValidImageFormat(img.imageUrl)
+      );
+      
+      if (validImages.length === 0) {
+        console.warn('No valid image formats found in Serper results');
+        return [];
+      }
+      
+      // Return up to `count` valid images
       const results: ImageResult[] = [];
-      for (let i = 0; i < Math.min(count, data.images.length); i++) {
-        const image = data.images[i];
+      for (let i = 0; i < Math.min(count, validImages.length); i++) {
+        const image = validImages[i];
         results.push({
           url: image.imageUrl,
           photographer: image.source || 'Google',
