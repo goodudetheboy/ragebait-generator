@@ -21,6 +21,7 @@ export default function Home() {
   const [showVoiceSelector, setShowVoiceSelector] = useState(false); // Collapsible section
   const [enableSubtitles, setEnableSubtitles] = useState(false); // Subtitle toggle
   const [imageSource, setImageSource] = useState<'pexels' | 'serper'>('pexels'); // Image source toggle
+  const [serperEconomyMode, setSerperEconomyMode] = useState(true); // Economy mode for Serper (default on)
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState('');
@@ -188,7 +189,8 @@ export default function Home() {
           prompt, 
           voice: selectedVoice,
           images: uploadedImages.length > 0 ? uploadedImages : undefined,
-          imageSource: uploadedImages.length > 0 ? undefined : imageSource // Only send if not using uploaded images
+          imageSource: uploadedImages.length > 0 ? undefined : imageSource, // Only send if not using uploaded images
+          serperEconomyMode: imageSource === 'serper' && uploadedImages.length === 0 ? serperEconomyMode : undefined
         }),
       });
 
@@ -837,7 +839,7 @@ export default function Home() {
 
                 {/* Image Source Toggle (only show when no images uploaded) */}
                 {uploadedImages.length === 0 && (
-                  <div className="border-4 border-black p-4 bg-white">
+                  <div className="border-4 border-black p-4 bg-white space-y-3">
                     <label className="block text-black font-black mb-3 text-lg uppercase font-bebas tracking-wider">
                       🖼️ IMAGE SOURCE:
                     </label>
@@ -867,6 +869,29 @@ export default function Home() {
                         SERPER
                       </button>
                     </div>
+                    
+                    {/* Serper Economy Mode Toggle */}
+                    {imageSource === 'serper' && (
+                      <div className="border-4 border-black p-3 bg-black">
+                        <label className="flex items-center justify-between cursor-pointer">
+                          <span className="text-white font-black text-sm uppercase font-bebas tracking-wider">
+                            💰 ECONOMY MODE (1 API CALL)
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={serperEconomyMode}
+                            onChange={(e) => setSerperEconomyMode(e.target.checked)}
+                            className="w-5 h-5 border-2 border-white bg-white cursor-pointer accent-white"
+                            disabled={loading}
+                          />
+                        </label>
+                        <p className="text-white text-xs mt-2 font-bebas tracking-wide">
+                          {serperEconomyMode 
+                            ? 'USES 1 QUERY FOR ALL IMAGES (SAVES API CREDITS)'
+                            : 'USES SEPARATE QUERY PER IMAGE (BETTER RESULTS)'}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
 

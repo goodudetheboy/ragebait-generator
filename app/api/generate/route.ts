@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateScript, generateSpeech, ELEVENLABS_VOICES } from '@/lib/grok';
 import { searchImage as searchPexels } from '@/lib/pexels';
-import { searchImage as searchSerper } from '@/lib/serper';
+import { searchImage as searchSerper, searchMultipleImages as searchSerperMultiple } from '@/lib/serper';
 import sharp from 'sharp';
 
 export const maxDuration = 60; // Only need 60s for script + image search + TTS
@@ -79,7 +79,7 @@ async function downloadAndCompressImage(url: string, maxSizeKB: number = 500): P
 export async function POST(req: NextRequest) {
   try {
     // Password verification
-    const { password, prompt, voice, images, imageSource } = await req.json();
+    const { password, prompt, voice, images, imageSource, serperEconomyMode } = await req.json();
     
     if (!password || password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json(
@@ -105,6 +105,7 @@ export async function POST(req: NextRequest) {
     console.log('🎬 Starting video generation');
     console.log('  - Prompt:', hasPrompt ? prompt : 'None (using images only)');
     console.log('  - Images:', hasImages ? `${images.length} uploaded` : `None (using ${imageSource === 'serper' ? 'Serper' : 'Pexels'})`);
+    console.log('  - Serper Economy Mode:', imageSource === 'serper' && serperEconomyMode ? 'Enabled' : 'Disabled');
 
     // Step 1: Generate script using Grok (with vision if images provided)
     console.log('📝 Generating script...');
@@ -129,27 +130,30 @@ export async function POST(req: NextRequest) {
     } else {
       // Search for images using selected source (Pexels or Serper)
       const useSerper = imageSource === 'serper';
-      const searchFunction = useSerper ? searchSerper : searchPexels;
       const sourceName = useSerper ? 'Serper' : 'Pexels';
       
       console.log(`  Searching ${sourceName}...`);
-      for (let i = 0; i < videoScript.scenes.length; i++) {
-        const scene = videoScript.scenes[i];
-        console.log(`  Searching for: ${scene.keywords}`);
+      
+      // Economy Mode for Serper: Use one query to get all images
+      if (useSerper && serperEconomyMode) {
+        console.log(`  💰 Economy Mode: Single query for ${videoScript.scenes.length} images`);
+        console.log(`  Searching for: ${prompt || 'ragebait content'}`);
         
-        const imageResult = await searchFunction(scene.keywords);
+        const imageResults = await searchSerperMultiple(prompt || 'ragebait content', videoScript.scenes.length);
         
-        if (!imageResult) {
-          console.warn(`  No image found for: ${scene.keywords}, using placeholder`);
-          throw new Error(`No image found for scene: ${scene.keywords}`);
+        if (!imageResults || imageResults.length === 0) {
+          throw new Error('No images found in economy mode');
         }
-
-        // For Serper, download and compress the image first
-        // (Google images can be huge and cause memory issues in FFmpeg)
-        if (useSerper) {
-          console.log(`  Compressing Serper image ${i + 1}...`);
+        
+        if (imageResults.length < videoScript.scenes.length) {
+          console.warn(`  ⚠️ Only found ${imageResults.length} images, needed ${videoScript.scenes.length}`);
+        }
+        
+        // Process all images
+        for (let i = 0; i < Math.min(imageResults.length, videoScript.scenes.length); i++) {
+          console.log(`  Compressing image ${i + 1}...`);
           try {
-            const compressedDataUrl = await downloadAndCompressImage(imageResult.url, 500); // Max 500KB per image
+            const compressedDataUrl = await downloadAndCompressImage(imageResults[i].url, 500);
             imageUrls.push(compressedDataUrl);
             console.log(`  ✅ Image ${i + 1} compressed successfully`);
           } catch (compressionError) {
@@ -157,10 +161,41 @@ export async function POST(req: NextRequest) {
             console.error(`  ❌ Failed to compress image ${i + 1}:`, errMsg);
             throw new Error(`Failed to process image ${i + 1}: ${errMsg}`);
           }
-        } else {
-          // Pexels images are already optimized
-          imageUrls.push(imageResult.url);
-          console.log(`  ✅ Image ${i + 1} found`);
+        }
+        
+        console.log(`  💰 Economy Mode: 1 API call saved ${videoScript.scenes.length - 1} queries!`);
+      } else {
+        // Normal mode: Query each scene individually
+        for (let i = 0; i < videoScript.scenes.length; i++) {
+          const scene = videoScript.scenes[i];
+          console.log(`  Searching for: ${scene.keywords}`);
+          
+          const searchFunction = useSerper ? searchSerper : searchPexels;
+          const imageResult = await searchFunction(scene.keywords);
+          
+          if (!imageResult) {
+            console.warn(`  No image found for: ${scene.keywords}, using placeholder`);
+            throw new Error(`No image found for scene: ${scene.keywords}`);
+          }
+
+          // For Serper, download and compress the image first
+          // (Google images can be huge and cause memory issues in FFmpeg)
+          if (useSerper) {
+            console.log(`  Compressing Serper image ${i + 1}...`);
+            try {
+              const compressedDataUrl = await downloadAndCompressImage(imageResult.url, 500); // Max 500KB per image
+              imageUrls.push(compressedDataUrl);
+              console.log(`  ✅ Image ${i + 1} compressed successfully`);
+            } catch (compressionError) {
+              const errMsg = compressionError instanceof Error ? compressionError.message : 'Unknown error';
+              console.error(`  ❌ Failed to compress image ${i + 1}:`, errMsg);
+              throw new Error(`Failed to process image ${i + 1}: ${errMsg}`);
+            }
+          } else {
+            // Pexels images are already optimized
+            imageUrls.push(imageResult.url);
+            console.log(`  ✅ Image ${i + 1} found`);
+          }
         }
       }
     }
